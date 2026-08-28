@@ -299,7 +299,7 @@ function geometryBytes(list) {
 }
 
 /** Build the whole master plan. Returns a group placed at the project's pin. */
-export function buildProceduralProject(project, level = 'high') {
+export function buildProceduralProject(project, level = 'high', opts = {}) {
   const plan = project.plan;
   const d = DETAIL[level] || DETAIL.high;
   const bytes = [];
@@ -311,7 +311,21 @@ export function buildProceduralProject(project, level = 'high') {
   root.add(site);
 
   // ground plate + jogging loop + water
-  site.add(flatShape(roundedRectShape(plan.site.w, plan.site.d, Math.min(plan.site.w, plan.site.d) * 0.14), 0.15, groundMaterial(), bytes));
+  const plateShape = roundedRectShape(plan.site.w, plan.site.d, Math.min(plan.site.w, plan.site.d) * 0.14);
+  site.add(flatShape(plateShape, 0.15, groundMaterial(), bytes));
+
+  // Retaining skirt. The pad is flat and sits on the highest ground under the site,
+  // so on a slope the ground falls away from its downhill edge. This wall closes
+  // that gap; on level ground it is buried and never seen.
+  if (opts.skirt > 0) {
+    const skirtGeo = new THREE.ExtrudeGeometry(plateShape, { depth: opts.skirt, bevelEnabled: false });
+    skirtGeo.rotateX(-Math.PI / 2);
+    skirtGeo.translate(0, -opts.skirt, 0);
+    const skirt = new THREE.Mesh(skirtGeo, plinthMaterial());
+    skirt.receiveShadow = true;
+    site.add(skirt);
+    bytes.push(skirtGeo);
+  }
 
   if (d.path) {
     const loopOuter = roundedRectShape(plan.site.w * 0.86, plan.site.d * 0.86, Math.min(plan.site.w, plan.site.d) * 0.16);
@@ -460,10 +474,10 @@ function placeAsset(inner, asset) {
 }
 
 /** Entry point the streaming manager calls. Real .glb wins if the registry has one. */
-export async function loadProject(project, level = 'high') {
+export async function loadProject(project, level = 'high', opts = {}) {
   const asset = project.plan.asset || {};
   const url = assetUrlFor(asset, level);
-  if (!url) return buildProceduralProject(project, level);
+  if (!url) return buildProceduralProject(project, level, opts);
 
   const loader = await getLoader();
   const gltf = await loader.loadAsync(url);

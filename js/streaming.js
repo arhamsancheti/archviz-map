@@ -26,6 +26,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** A low build is a fraction of the download a high build is. */
 const LEVEL_WEIGHT = { low: 0.12, mid: 0.4, high: 1 };
 
+/**
+ * How far the retaining skirt drops below a site pad. Covers the fall across any
+ * plausible urban site; buried and invisible on level ground.
+ */
+const SKIRT_DEPTH = 45;
+
 export class StreamingManager {
   constructor(map, sceneManager, projects) {
     this.map = map;
@@ -190,14 +196,18 @@ export class StreamingManager {
       }
       // the camera may have moved on while we waited
       if (!this.visibleIds.includes(id) && id !== this.selectedId) return;
-      const model = await loadProject(project, level);
+      const site = project.plan.site;
+      const radiusM = Math.hypot(site.w, site.d) / 2;
+      // Only worth a skirt when there is terrain for the pad to stand proud of.
+      const skirt = this.map.getTerrain && this.map.getTerrain() ? SKIRT_DEPTH : 0;
+      const model = await loadProject(project, level, { skirt });
       if (!this.visibleIds.includes(id) && id !== this.selectedId) {
         model.dispose();
         return;
       }
       // swap only once the new build is ready, so there is no empty frame
       if (this.scene.has(id)) this.scene.remove(id);
-      this.scene.add(id, model, project.location);
+      this.scene.add(id, model, project.location, radiusM);
       this.refreshMassing(this.map.getZoom(), this.visibleIds.map((v) => this.byId.get(v)));
     } catch (err) {
       console.error('[stream] failed to load', id, err);

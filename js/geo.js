@@ -71,14 +71,65 @@ export function massingFeatures(project) {
 }
 
 /** The site boundary, used as a soft ground tint under a project. */
-export function siteFeature(project) {
+export function siteFeature(project, padM = 0) {
   const s = project.plan.site;
   return {
     type: 'Feature',
     properties: { projectId: project.id, accent: project.accent },
     geometry: {
       type: 'Polygon',
-      coordinates: [footprintRing(project.location, 0, 0, s.w, s.d, s.rot)],
+      coordinates: [footprintRing(project.location, 0, 0, s.w + padM * 2, s.d + padM * 2, s.rot)],
     },
   };
+}
+
+/**
+ * Every site as one MultiPolygon, for cutting the basemap's OSM buildings out from
+ * under our own geometry. Without this, the generic OSM blocks for a plot sit inside
+ * the client's actual towers.
+ *
+ * Padded outwards a little so a building sitting right on the boundary goes too.
+ */
+export function siteCutout(projects, padM = 12) {
+  return {
+    type: 'MultiPolygon',
+    coordinates: projects.map((p) => siteFeature(p, padM).geometry.coordinates),
+  };
+}
+
+/**
+ * Lowest and highest ground under a site.
+ *
+ * A project pad is flat, so seating it on the elevation at its pin makes it cut into
+ * the hill on the uphill side. Sampling the whole footprint lets us sit the pad on
+ * the high point instead, and tells us how far the ground falls away from it.
+ *
+ * Returns null when terrain is off or not loaded yet.
+ */
+export function sampleGround(map, origin, radiusM) {
+  if (!map || typeof map.queryTerrainElevation !== 'function') return null;
+  const offsets = [[0, 0]];
+  for (const r of [radiusM * 0.55, radiusM]) {
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      offsets.push([Math.cos(a) * r, Math.sin(a) * r]);
+    }
+  }
+
+  let min = Infinity;
+  let max = -Infinity;
+  for (const [dx, dz] of offsets) {
+    const [lng, lat] = offsetLngLat(origin, dx, dz);
+    let v = null;
+    try {
+      v = map.queryTerrainElevation({ lng, lat });
+    } catch {
+      return null;
+    }
+    if (!Number.isFinite(v)) continue;
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  return { min, max, relief: max - min };
 }

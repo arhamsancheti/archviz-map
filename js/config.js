@@ -96,9 +96,33 @@ export const WORLD = {
   },
   exaggeration: 1.0, // real elevation; raise for drama on hill sites
   hillshade: 0.3,
-  buildingsMinZoom: 14,
+  buildingsMinZoom: 14.4,   // tiles start loading here...
+  buildingFadeZoom: 15.4,   // ...and they are fully grown by here
   buildingOpacity: 0.92,
 };
+
+/**
+ * Phones are the main target, so the expensive things are off there by default.
+ *
+ * Shadows are the biggest single cost in this scene: every resident model is drawn in
+ * its own pass, and each pass re-renders the shadow map. Four models means four shadow
+ * passes a frame, which a mid-range phone will not carry.
+ */
+export const PERF = (() => {
+  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  const small = Math.min(window.innerWidth, window.innerHeight) < 820;
+  const mobile = coarse || small;
+  return {
+    mobile,
+    shadows: !mobile,
+    shadowMapSize: mobile ? 1024 : 2048,
+    antialias: !mobile,
+    maxResidentModels: mobile ? 2 : 4,
+    cityBuildings: true,
+  };
+})();
+
+LOD.maxResidentModels = PERF.maxResidentModels;
 
 export const CAMERA = {
   overview: { zoom: 2.7, pitch: 0, bearing: 0, center: [78.9, 21.6] },

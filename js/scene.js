@@ -16,12 +16,18 @@
  * drawn - no per-project light bookkeeping.
  */
 import * as THREE from 'three';
+import { sampleGround } from './geo.js';
+import { PERF } from './config.js';
 
 /**
  * Only for the mercator fallback below, which lands in MapLibre's Z-up world space.
  * The v5 model frame is already Y-up and needs no flip.
  */
 const FLIP = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+
+/** Scratch matrices - the render loop runs every frame, so it allocates nothing. */
+const SCRATCH_MAIN = new THREE.Matrix4();
+const SCRATCH_WORLD = new THREE.Matrix4();
 
 export class SceneManager {
   constructor() {
@@ -37,15 +43,15 @@ export class SceneManager {
     // Fixed in the local frame of whichever project is rendering: late-morning sun.
     this.sun = new THREE.DirectionalLight(0xfff2e0, 2.1);
     this.sun.position.set(300, 640, -420);
-    this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.castShadow = PERF.shadows;
+    this.sun.shadow.mapSize.set(PERF.shadowMapSize, PERF.shadowMapSize);
     const sc = this.sun.shadow.camera;
     sc.near = 80;
     sc.far = 2400;
-    sc.left = -600;
-    sc.right = 600;
-    sc.top = 600;
-    sc.bottom = -600;
+    sc.left = -450;
+    sc.right = 450;
+    sc.top = 450;
+    sc.bottom = -450;
     this.sun.shadow.bias = -0.0009;
     this.scene.add(this.sun);
     this.scene.add(this.sun.target); // stays at the origin of the local frame
@@ -66,13 +72,13 @@ export class SceneManager {
 
       onAdd(map, gl) {
         self.map = map;
-        owned = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
+        owned = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: PERF.antialias });
         owned.autoClear = false;
         owned.outputColorSpace = THREE.SRGBColorSpace;
         owned.toneMapping = THREE.ACESFilmicToneMapping;
         owned.toneMappingExposure = 1.0;
-        owned.shadowMap.enabled = true;
-        owned.shadowMap.type = THREE.PCFSoftShadowMap;
+        owned.shadowMap.enabled = PERF.shadows;
+        owned.shadowMap.type = PERF.shadows ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
         self.renderer = owned;
       },
 
@@ -98,7 +104,7 @@ export class SceneManager {
         for (const entry of self.entries.values()) {
           const world = self.modelMatrix(entry.lngLat, entry.altitude || 0);
           if (!world) continue;
-          self.camera.projectionMatrix = new THREE.Matrix4().fromArray(main).multiply(world);
+          self.camera.projectionMatrix = SCRATCH_MAIN.fromArray(main).multiply(world);
 
           for (const other of self.entries.values()) other.group.visible = other === entry;
           owned.resetState();
@@ -119,7 +125,7 @@ export class SceneManager {
       // metres in the glTF convention - X east, Y up, Z south - which is already
       // how our geometry is built, so no axis flip here. (Measured, not assumed:
       // see PROGRESS.md. Adding a flip here tips every building on its side.)
-      return new THREE.Matrix4().fromArray(tr.getMatrixForModel([lngLat.lng, lngLat.lat], altitude));
+      return SCRATCH_WORLD.fromArray(tr.getMatrixForModel([lngLat.lng, lngLat.lat], altitude));
     }
     // Fallback for mercator-only builds.
     const mc = maplibregl.MercatorCoordinate.fromLngLat(lngLat, altitude);
@@ -130,14 +136,15 @@ export class SceneManager {
       .multiply(FLIP);
   }
 
-  add(id, model, lngLat) {
+  add(id, model, lngLat, radiusM = 0) {
     if (this.entries.has(id)) return;
     model.group.position.set(0, 0, 0); // the model matrix does the placing
     this.scene.add(model.group);
     this.entries.set(id, {
       id, group: model.group, dispose: model.dispose,
-      bytes: model.bytes, level: model.level || 'high', lngLat,
+      bytes: model.bytes, level: model.level || 'high', lngLat, radiusM,
     });
+    this.updateAltitudes();
     if (this.map) this.map.triggerRepaint();
   }
 
@@ -164,10 +171,18 @@ export class SceneManager {
     let changed = false;
     for (const e of this.entries.values()) {
       let alt = 0;
-      try {
-        const v = this.map.queryTerrainElevation(e.lngLat);
-        if (Number.isFinite(v)) alt = v;
-      } catch (err) { /* terrain not ready */ }
+      // Sit the pad on the HIGHEST ground under the site, not the ground at its pin -
+      // a flat pad seated on the pin's elevation cuts into the hill uphill of it.
+      const ground = sampleGround(this.map, e.lngLat, e.radiusM || 0);
+      if (ground) {
+        alt = ground.max;
+        e.relief = ground.relief;
+      } else {
+        try {
+          const v = this.map.queryTerrainElevation(e.lngLat);
+          if (Number.isFinite(v)) alt = v;
+        } catch (err) { /* terrain not ready */ }
+      }
       // Only react to a real change. Elevation wobbles by centimetres as DEM tiles
       // refine, and repainting on that would drive an idle -> repaint -> idle loop.
       if (e.altitude === undefined || Math.abs(e.altitude - alt) > 0.25) {
