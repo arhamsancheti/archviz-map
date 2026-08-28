@@ -211,15 +211,23 @@ Verified programmatically in the browser: terrain active and decoding real eleva
 DEM source, hillshade layer and city-buildings layer all installed, sky applied without
 error, and the layer's paint expression accepted by MapLibre.
 
-**Not yet verified visually.** The browser tab this session drives kept going hidden,
-and Chrome pauses rendering, tile loading and timers in a hidden tab - so no screenshot
-of the terrain + city buildings, and the building tiles never finished loading for a
-feature query. What still needs a human eye:
+**Terrain confirmed visually** by Naman on 2026-08-29: Himalayan hillshade renders on
+the globe, so the DEM, hillshade and sky are all genuinely working.
 
-1. Do the extruded OSM buildings actually show, and do they have sensible heights (or
-   is everything the 3-storey fallback)?
+Still needs a human eye (the tab this session drives kept going hidden, and Chrome
+pauses rendering, tile loading and timers there):
+
+1. Do the extruded OSM buildings actually show at street zoom, and do they have
+   sensible heights (or is everything the 3-storey fallback)?
 2. Does the site plate clip badly anywhere on sloped ground?
-3. Does the sky read well on all three basemaps, especially satellite?
+3. Does the sky read well on satellite?
+
+- [x] 28. **Camera levels out when zooming back to the globe.** Reported as "the globe
+      is a lil down". It was not the globe: flying into a project tilts to 62 degrees
+      and pads the view for the detail panel, and zooming back out kept both, which
+      pushes the centre down the screen and lifts the horizon. Below
+      `CAMERA.levelOutZoom` the camera now eases pitch to 0 and clears the padding.
+      Bearing is deliberately kept, so a spun globe stays spun.
 
 Note for future sessions: in a hidden tab, `setTimeout` is throttled to roughly once a
 minute, so any probe that awaits a sleep will blow the 45s tool timeout. Split the work
