@@ -336,6 +336,43 @@ first two turned out to be one bug.
       Probe-craft note: `querySourceFeatures` needs the exact source id - Carto's
       is `carto`, not `composite` (a wrong-but-existing id returns [] silently).
 
+- [x] 36. **Rotating the globe froze the app.** Reported by Naman: grab the globe,
+      spin it, everything locks. Not reproducible headlessly - frames held at
+      5.6 ms through rotation drags and no handler spent meaningful CPU - which
+      points at the real GPU, and the one piece of work we run there that upstream
+      itself calls half-supported: the DEM terrain MESH on the globe projection
+      (maplibre logs "terrain is not supported on vertical perspective
+      projection"; their issue tracker carries a `globe-with-terrain` label, with
+      drag-zoom runaways, camera jumps on dragend, and a terrain-during-animation
+      task-queue deadlock in the family).
+
+      The mesh is zoom-gated now (`syncTerrain`): off at planet scale - where it
+      displaces nothing you can see and the hillshade, a plain raster layer,
+      carries the relief look - and on from `WORLD.terrainMinZoom` (12) up, which
+      is also where the globe projection has eased into flat mercator, so the
+      mesh never runs on a curved earth. Flips happen on moveend only, never
+      mid-animation (that is the deadlock trigger), with 1 zoom of hysteresis so
+      a wheel hover at the threshold cannot flap it.
+
+      Two things the gate broke, both fixed:
+      - `flyToProject` asked `map.getTerrain()` to decide two-phase vs single
+        flight; on the globe that now reads false and would have brought the
+        round-33 mis-landing back. It checks `state.world3d` instead - world3d
+        means the mesh is on by arrival, which is what the landing has to respect.
+      - Models are seated on the terrain by `updateAltitudes`, which ran on
+        `idle` - and idle can starve (measured: 0 idle events in 4 s while DEM
+        tiles arrived, so the model sat at altitude 0 over an 896 m ground).
+        DEM tile arrivals now seat them directly (`sourcedata`, throttled 300 ms,
+        no-op unless an elevation moved > 25 cm), plus on moveend.
+
+      Verified: globe rotation smooth with the mesh off and the hillshade on; a
+      selection from the globe still lands the pin at (975, 600) with the mesh on
+      at arrival and the model seated at 877 m; cutout still 0/81; the
+      hysteresis walk flips the mesh exactly at 12 up / 11 down. If a freeze ever
+      shows up again, the dial to revisit is `WORLD.terrainMinZoom` - and worth
+      asking for the browser console, since headless SwiftShader cannot see
+      GPU-side stalls.
+
 Note for future sessions: in a hidden tab, `setTimeout` is throttled to roughly once a
 minute, so any probe that awaits a sleep will blow the 45s tool timeout. Split the work
 across separate tool calls instead of sleeping inside one. Headless Chrome works well

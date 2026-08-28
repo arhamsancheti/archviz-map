@@ -69,6 +69,8 @@ async function boot() {
     }, 160);
   });
   map.on('moveend', () => {
+    syncTerrain();
+    scene.updateAltitudes();
     streaming.update();
     syncAmenities();
     levelOutWhenZoomedOut();
@@ -77,6 +79,18 @@ async function boot() {
   map.on('idle', () => {
     scene.updateAltitudes();
     refreshBuildingCutout();
+  });
+  // idle is not guaranteed - an orbiting camera or a busy render loop can starve it
+  // indefinitely - so DEM tile arrivals seat the models directly. Throttled and
+  // cheap: updateAltitudes no-ops unless an elevation moved > 25 cm.
+  let altTimer = null;
+  map.on('sourcedata', (e) => {
+    if (e.sourceId !== WORLD.dem.id) return;
+    if (altTimer) return;
+    altTimer = setTimeout(() => {
+      altTimer = null;
+      scene.updateAltitudes();
+    }, 300);
   });
   // tiles stream in for a while after a flight; each arrival is a chance to find
   // more OSM buildings that sit under a site. Throttled - sourcedata is noisy.
@@ -246,29 +260,53 @@ function applyWorld() {
   try {
     if (!map.getSource(WORLD.dem.id)) map.addSource(WORLD.dem.id, WORLD.dem.spec);
 
-    if (state.world3d) {
-      map.setTerrain({ source: WORLD.dem.id, exaggeration: WORLD.exaggeration });
-      if (!map.getLayer('hillshade')) {
-        map.addLayer(
-          {
-            id: 'hillshade',
-            type: 'hillshade',
-            source: WORLD.dem.id,
-            paint: { 'hillshade-exaggeration': WORLD.hillshade },
-          },
-          map.getLayer('site-fill') ? 'site-fill' : undefined
-        );
-      }
-    } else {
-      map.setTerrain(null);
-      if (map.getLayer('hillshade')) map.removeLayer('hillshade');
+    if (state.world3d && !map.getLayer('hillshade')) {
+      map.addLayer(
+        {
+          id: 'hillshade',
+          type: 'hillshade',
+          source: WORLD.dem.id,
+          paint: { 'hillshade-exaggeration': WORLD.hillshade },
+        },
+        map.getLayer('site-fill') ? 'site-fill' : undefined
+      );
+    } else if (!state.world3d && map.getLayer('hillshade')) {
+      map.removeLayer('hillshade');
     }
   } catch (err) {
     console.warn('[world] terrain unavailable:', err.message);
   }
 
+  syncTerrain();
   applyCityBuildings();
   scene.updateAltitudes();
+}
+
+/**
+ * The DEM terrain mesh is expensive on a globe and only partially supported there,
+ * so it is zoom-gated: off at planet scale (where it displaces nothing you can see
+ * and the hillshade carries the relief), on from `WORLD.terrainMinZoom` up, where
+ * the projection has eased flat and the mesh is what makes a site sit in its
+ * landscape. Runs on moveend - never mid-animation, which upstream handles badly.
+ * Hysteresis stops it flapping while a wheel zoom hovers around the threshold.
+ */
+let terrainMeshOn = false;
+function syncTerrain() {
+  if (!state.world3d) {
+    terrainMeshOn = false;
+    try { map.setTerrain(null); } catch { /* style not ready */ }
+    return;
+  }
+  const z = map.getZoom();
+  const want = terrainMeshOn ? z >= WORLD.terrainMinZoom - 1 : z >= WORLD.terrainMinZoom;
+  if (want === terrainMeshOn) return;
+  try {
+    map.setTerrain(want ? { source: WORLD.dem.id, exaggeration: WORLD.exaggeration } : null);
+    terrainMeshOn = want;
+  } catch (err) {
+    console.warn('[world] terrain unavailable:', err.message);
+    terrainMeshOn = false;
+  }
 }
 
 /**
@@ -500,8 +538,12 @@ function flyToProject(p, wide) {
   let demKnown = false;
   try {
     demKnown = Number.isFinite(map.queryTerrainElevation(target.center));
-  } catch { /* terrain off or unsupported */ }
-  if (map.getTerrain() && !demKnown) {
+  } catch { /* projection can't answer yet */ }
+  // world3d implies the mesh is on by the time we arrive, so its ground elevation
+  // is what the landing has to respect. The mesh is zoom-gated (syncTerrain), so
+  // asking getTerrain() here would read false on the globe even though the target
+  // stands on terrain.
+  if (state.world3d && !demKnown) {
     const disarm = onUserGesture(() => { flightSeq++; });
     map.flyTo({
       ...target,

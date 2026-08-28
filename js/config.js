@@ -95,6 +95,17 @@ export const WORLD = {
     },
   },
   exaggeration: 1.0, // real elevation; raise for drama on hill sites
+  /**
+   * The terrain MESH only runs from this zoom up. Rotating the globe with the mesh
+   * active freezes real GPUs: globe+terrain is only partially supported upstream
+   * (maplibre warns "terrain is not fully supported on vertical perspective
+   * projection", and the globe-with-terrain issues read as our freeze - see
+   * PROGRESS.md round 5). At planet scale the mesh displaces nothing visible
+   * anyway; the hillshade layer keeps the relief look there. 12 is also where the
+   * globe projection has eased into flat mercator, so the mesh never runs on a
+   * curved earth.
+   */
+  terrainMinZoom: 12,
   hillshade: 0.3,
   buildingsMinZoom: 14.4,   // tiles start loading here...
   buildingFadeZoom: 15.4,   // ...and they are fully grown by here
