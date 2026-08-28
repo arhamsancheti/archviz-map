@@ -249,6 +249,17 @@ satellite basemap?
       - Render loop reuses scratch matrices; it allocates nothing per frame.
       - Shadow camera frustum tightened from 600 m to 450 m everywhere.
 
+- [x] 32. **Absurdly tall OSM buildings.** Reported as needles shooting through the sky
+      around Thane. Not our code - OSM height tags are user-entered and some are junk.
+      Measured in the tile: two features carry `render_height: 1000` (metres) against a
+      median of 41 m and a next-tallest genuine 154 m.
+      Heights are now capped at `WORLD.maxBuildingHeight` (400 m). Worth knowing: this
+      basemap's tiles expose only `render_height` / `render_min_height` - no storey
+      count - so there is nothing to cross-check a suspicious height against, and a cap
+      is the only honest fix. It clips a real supertall elsewhere (Burj Khalifa, 828 m)
+      to 400 m; that trade is deliberate, since a bogus 1000 m tower next to a client's
+      project is far worse in a demo than a shortened Dubai landmark.
+
       Not yet done, and the next things to reach for if a phone still struggles:
       cap `devicePixelRatio`, drop `LOD.maxResidentModels` to 1, raise
       `LOD.modelMinZoom` so geometry starts later, or skip the three.js pass entirely

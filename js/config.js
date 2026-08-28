@@ -99,6 +99,17 @@ export const WORLD = {
   buildingsMinZoom: 14.4,   // tiles start loading here...
   buildingFadeZoom: 15.4,   // ...and they are fully grown by here
   buildingOpacity: 0.92,
+  /**
+   * OSM height tags are user-entered and a few are junk - Thane alone serves two
+   * buildings tagged 1000 m, which render as needles through the sky next to a
+   * median of about 41 m. Nothing real near our clients comes close to this cap
+   * (India's tallest is around 320 m), so anything above it is data, not architecture.
+   *
+   * The trade: a genuine supertall elsewhere (Burj Khalifa, 828 m) is clipped to this.
+   * Worth it - we sell Indian residential, and a wrong 1000 m tower is far more
+   * damaging in a client demo than a shortened Dubai landmark.
+   */
+  maxBuildingHeight: 400,
 };
 
 /**

@@ -271,12 +271,17 @@ function applyCityBuildings() {
   const z0 = WORLD.buildingsMinZoom;
   const z1 = WORLD.buildingFadeZoom;
 
+  // Schemas differ on the attribute name; fall back to storeys, then a guess. The
+  // outer `min` throws away junk OSM tags - see WORLD.maxBuildingHeight.
   const height = [
-    // schemas differ on the attribute name; fall back to storeys, then a guess
-    'coalesce',
-    ['get', 'render_height'],
-    ['get', 'height'],
-    ['*', ['coalesce', ['get', 'levels'], ['get', 'building:levels'], 3], 3.2],
+    'min',
+    [
+      'coalesce',
+      ['get', 'render_height'],
+      ['get', 'height'],
+      ['*', ['coalesce', ['get', 'levels'], ['get', 'building:levels'], 3], 3.2],
+    ],
+    WORLD.maxBuildingHeight,
   ];
 
   const layer = {
@@ -290,7 +295,11 @@ function applyCityBuildings() {
       // Grow and fade in over a zoom rather than appearing at full height in one
       // frame, which reads as the city snapping into place.
       'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], z0, 0, z1, height],
-      'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
+      'fill-extrusion-base': [
+        'min',
+        ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
+        WORLD.maxBuildingHeight,
+      ],
       'fill-extrusion-opacity': [
         'interpolate', ['linear'], ['zoom'],
         z0, 0,
