@@ -214,13 +214,9 @@ error, and the layer's paint expression accepted by MapLibre.
 **Terrain confirmed visually** by Naman on 2026-08-29: Himalayan hillshade renders on
 the globe, so the DEM, hillshade and sky are all genuinely working.
 
-Still needs a human eye (the tab this session drives kept going hidden, and Chrome
-pauses rendering, tile loading and timers there):
-
-1. Do the extruded OSM buildings actually show at street zoom, and do they have
-   sensible heights (or is everything the 3-storey fallback)?
-2. Does the site plate clip badly anywhere on sloped ground?
-3. Does the sky read well on satellite?
+Naman confirmed on 2026-08-29: OSM buildings render and look right, and the site plate
+did clip on slopes (fixed in 29 below). Still unchecked: does the sky read well on the
+satellite basemap?
 
 - [x] 28. **Camera levels out when zooming back to the globe.** Reported as "the globe
       is a lil down". It was not the globe: flying into a project tilts to 62 degrees
@@ -228,6 +224,35 @@ pauses rendering, tile loading and timers there):
       pushes the centre down the screen and lifts the horizon. Below
       `CAMERA.levelOutZoom` the camera now eases pitch to 0 and clears the padding.
       Bearing is deliberately kept, so a spun globe stays spun.
+- [x] 29. **Site pads no longer clip into slopes.** The pad is flat and was seated on
+      the elevation at the project's pin, so it cut into the hill uphill of that point.
+      It now samples the ground across the whole footprint, seats on the **highest**
+      point, and drops a retaining skirt from its edge to cover the fall downhill -
+      which is what a real levelled site pad does. The skirt is only built when terrain
+      is on, because on flat ground it would hang visibly below the pad instead of
+      being buried. Measured on Lakeside Habitat: ground 815.3-819.1 m, pin at 817.2,
+      so the old pad was cutting 1.9 m in.
+- [x] 30. **OSM buildings cut out under our projects.** The basemap's generic blocks
+      were sitting inside the client's towers. The layer now filters with
+      `['!', ['within', <every site polygon, padded 12 m>]]`. Verified MapLibre really
+      evaluates the operator rather than ignoring it: a bogus operator raises a style
+      error, this raises none. Note `within` tests full containment, so a building
+      straddling the boundary survives - widen the pad if that shows up.
+- [x] 31. **Performance work**, since phones are the main target.
+      - City buildings grow and fade in across zoom 14.4 - 15.4 instead of appearing at
+        full height in one frame, which was the "snap".
+      - A mobile profile (coarse pointer, or a screen under 820 px): **shadows off**,
+        shadow map halved, antialiasing off, 2 resident models instead of 4.
+        Shadows are the single biggest cost here - each resident model draws in its own
+        pass and every pass re-renders the shadow map, so four models means four shadow
+        passes a frame.
+      - Render loop reuses scratch matrices; it allocates nothing per frame.
+      - Shadow camera frustum tightened from 600 m to 450 m everywhere.
+
+      Not yet done, and the next things to reach for if a phone still struggles:
+      cap `devicePixelRatio`, drop `LOD.maxResidentModels` to 1, raise
+      `LOD.modelMinZoom` so geometry starts later, or skip the three.js pass entirely
+      for models below a few dozen pixels on screen.
 
 Note for future sessions: in a hidden tab, `setTimeout` is throttled to roughly once a
 minute, so any probe that awaits a sleep will blow the 45s tool timeout. Split the work
