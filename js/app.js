@@ -71,6 +71,7 @@ async function boot() {
   map.on('moveend', () => {
     streaming.update();
     syncAmenities();
+    levelOutWhenZoomedOut();
   });
   // terrain arrives asynchronously; re-seat the models on it once it has
   map.on('idle', () => scene.updateAltitudes());
@@ -352,6 +353,30 @@ function applyFilter() {
   markers.update(state.filtered, state.selectedId);
 }
 
+/* ---------------------------------------------------------------- camera */
+
+const NO_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+let cameraFlight = false; // a programmatic flight is in progress; leave it alone
+
+/**
+ * Zooming out from a project leaves the camera tilted and still padded for the
+ * detail panel, which puts the globe low and off to one side. Level it back up.
+ */
+function levelOutWhenZoomedOut() {
+  if (cameraFlight) {
+    cameraFlight = false;
+    return;
+  }
+  if (map.getZoom() >= CAMERA.levelOutZoom) return;
+
+  const pad = map.getPadding();
+  const tilted = map.getPitch() > 1;
+  const padded = pad.top || pad.right || pad.bottom || pad.left;
+  if (!tilted && !padded) return;
+
+  map.easeTo({ pitch: 0, padding: NO_PADDING, duration: 700, essential: true });
+}
+
 /* --------------------------------------------------------------- actions */
 
 function selectProject(id) {
@@ -361,6 +386,7 @@ function selectProject(id) {
   streaming.select(id);
 
   const wide = window.innerWidth > 860;
+  cameraFlight = true;
   map.flyTo({
     center: [p.location.lng, p.location.lat],
     zoom: CAMERA.project.zoom,
@@ -388,6 +414,11 @@ function closeProject() {
   stopOrbit();
   UI.closeDetail();
   markers.clearAmenities();
+  const pad = map.getPadding();
+  if (pad.left || pad.right || pad.top || pad.bottom) {
+    cameraFlight = true;
+    map.easeTo({ padding: NO_PADDING, duration: 500, essential: true });
+  }
   UI.renderCards(state.filtered, null, selectProject);
 }
 
@@ -402,6 +433,7 @@ function flyToAmenity(project, amenity) {
   const x = amenity.x * Math.cos(rot) - amenity.z * Math.sin(rot);
   const z = amenity.x * Math.sin(rot) + amenity.z * Math.cos(rot);
   stopOrbit();
+  cameraFlight = true;
   map.flyTo({
     center: offsetLngLat(project.location, x, z),
     zoom: CAMERA.amenity.zoom,
@@ -413,6 +445,7 @@ function flyToAmenity(project, amenity) {
 }
 
 function zoomToCluster(center, members) {
+  cameraFlight = true;
   map.flyTo({ center, zoom: Math.min(map.getZoom() + 2.6, 15), duration: 900, essential: true });
 }
 
@@ -432,7 +465,8 @@ async function share(p) {
 
 function resetView() {
   closeProject();
-  map.flyTo({ ...CAMERA.overview, duration: 2000, essential: true, padding: { top: 0, bottom: 0, left: 0, right: 0 } });
+  cameraFlight = true;
+  map.flyTo({ ...CAMERA.overview, duration: 2000, essential: true, padding: NO_PADDING });
 }
 
 /* ----------------------------------------------------------------- orbit */

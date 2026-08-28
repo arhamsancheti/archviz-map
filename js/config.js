@@ -105,6 +105,13 @@ export const CAMERA = {
   project: { zoom: 16.1, pitch: 62, duration: 2600 },
   amenity: { zoom: 17.6, pitch: 70, duration: 1500 },
   orbitSpeed: 0.045, // degrees per frame
+  /**
+   * Below this zoom the camera levels itself back up. Tilt is meaningful standing in
+   * a site and meaningless looking at a continent - left on, it pushes the centre of
+   * the globe down the screen and lifts the horizon, which reads as broken. Earth and
+   * Apple Maps both level out on the way out; so do we.
+   */
+  levelOutZoom: 7,
 };
 
 export const fmtPrice = (n) => {
