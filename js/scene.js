@@ -96,7 +96,7 @@ export class SceneManager {
 
         // Draw one project at a time, each in its own local frame.
         for (const entry of self.entries.values()) {
-          const world = self.modelMatrix(entry.lngLat);
+          const world = self.modelMatrix(entry.lngLat, entry.altitude || 0);
           if (!world) continue;
           self.camera.projectionMatrix = new THREE.Matrix4().fromArray(main).multiply(world);
 
@@ -112,17 +112,17 @@ export class SceneManager {
   }
 
   /** Metres-from-the-pin frame for one location, in whatever projection is active. */
-  modelMatrix(lngLat) {
+  modelMatrix(lngLat, altitude = 0) {
     const tr = this.map && this.map.transform;
     if (tr && typeof tr.getMatrixForModel === 'function') {
       // MapLibre v5, correct under globe and mercator alike. Its model frame is
       // metres in the glTF convention - X east, Y up, Z south - which is already
       // how our geometry is built, so no axis flip here. (Measured, not assumed:
       // see PROGRESS.md. Adding a flip here tips every building on its side.)
-      return new THREE.Matrix4().fromArray(tr.getMatrixForModel([lngLat.lng, lngLat.lat], 0));
+      return new THREE.Matrix4().fromArray(tr.getMatrixForModel([lngLat.lng, lngLat.lat], altitude));
     }
     // Fallback for mercator-only builds.
-    const mc = maplibregl.MercatorCoordinate.fromLngLat(lngLat, 0);
+    const mc = maplibregl.MercatorCoordinate.fromLngLat(lngLat, altitude);
     const s = mc.meterInMercatorCoordinateUnits();
     return new THREE.Matrix4()
       .makeTranslation(mc.x, mc.y, mc.z)
@@ -153,6 +153,29 @@ export class SceneManager {
 
   has(id) {
     return this.entries.has(id);
+  }
+
+  /**
+   * Sit every model on the terrain. Elevation tiles arrive asynchronously, so this is
+   * re-run whenever the map goes idle; with terrain off it resolves to 0.
+   */
+  updateAltitudes() {
+    if (!this.map || typeof this.map.queryTerrainElevation !== 'function') return;
+    let changed = false;
+    for (const e of this.entries.values()) {
+      let alt = 0;
+      try {
+        const v = this.map.queryTerrainElevation(e.lngLat);
+        if (Number.isFinite(v)) alt = v;
+      } catch (err) { /* terrain not ready */ }
+      // Only react to a real change. Elevation wobbles by centimetres as DEM tiles
+      // refine, and repainting on that would drive an idle -> repaint -> idle loop.
+      if (e.altitude === undefined || Math.abs(e.altitude - alt) > 0.25) {
+        e.altitude = alt;
+        changed = true;
+      }
+    }
+    if (changed) this.map.triggerRepaint();
   }
 
   /** Which build of this model is resident, or null. */
