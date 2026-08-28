@@ -152,6 +152,45 @@ mid from 15.6, high from 16.4. The streaming manager swaps builds as you move, a
 frees the old one once the new one has finished loading, so there is no empty frame.
 The HUD shows the current level next to the tier.
 
+## The 3D world around a project
+
+A project should look like it is *in* a city, not floating on a diagram. Three things
+give that, and all three are on by default (the button bottom-right toggles them):
+
+- **Terrain.** Real elevation from the Mapzen / AWS open elevation tiles - free, no
+  key. Verified decoding correctly: 222 m at Gurugram, 817 m at Bengaluru.
+- **City buildings.** The basemap's vector tiles already carry OSM building
+  footprints, so we extrude those by their height tags. This costs **no extra
+  download** - the tiles are being fetched for the basemap anyway.
+- **Sky and atmosphere.** MapLibre's sky layer, tinted per basemap, so the horizon
+  reads as air rather than a cut-off edge.
+
+Our models sit *on* the terrain: elevation is sampled at each project's pin and passed
+as the model altitude, refreshed when the map goes idle because elevation tiles arrive
+asynchronously.
+
+### Why not Google or Cesium
+
+| Option | Look | Cost | Verdict |
+|---|---|---|---|
+| **This build** - OSM extrusions + DEM terrain | clean, Apple-Maps-ish; buildings are boxes | free, no key | right for now |
+| **Google Photorealistic 3D Tiles** | the best; real textured mesh of whole cities | API key + per-request billing | worth it if the client demo justifies the bill |
+| **Cesium Ion / Cesium OSM Buildings** | good terrain, worldwide building set | free tier with a token, paid above it | the upgrade if we want terrain quality without Google pricing |
+| **Bing/Esri 3D** | patchy coverage in India | key | no |
+
+Switching later is contained: it changes the basemap and how the ground renders, not
+the registry, the streaming ladder, or how our own models are placed. The one thing to
+know is that Google's tiles arrive as their own 3D Tiles renderer, so our three.js
+layer would need to share depth with that instead of MapLibre.
+
+### Known rough edges
+
+- A flat site plate on sloping ground will clip. Fine for the flat city sites we have;
+  a hill project needs the plate draped on the terrain.
+- If the basemap's building tiles carry no height tag, the fallback is 3 storeys, so
+  those blocks look uniform.
+- Terrain exaggeration is 1.0 (real). Raise `WORLD.exaggeration` for drama on hill sites.
+
 ## Files
 
 ```

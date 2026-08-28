@@ -182,6 +182,49 @@ Then loaded those real Draco files in the browser against a project's lat/lng: p
 correctly, upright, grounded, and the level swapped low -> mid -> high as the camera
 came in (44 KB -> 187 KB -> 478 KB of resident geometry).
 
+## Round 4 (2026-08-29) - git history, and the 3D world
+
+- [x] 22. **Repo initialised with a staged history** so any stage can be checked out or
+      reverted. Commits are authored from the machine's own git identity - no
+      credentials in the tree (the app deliberately uses keyless tile providers, which
+      a scan confirmed) and no assistant attribution in the messages.
+      The app first runs at the "wire map, scene, streaming and UI together" commit.
+- [x] 23. **Terrain.** Mapzen / AWS open elevation tiles (`terrarium` encoding), free
+      and keyless, plus a hillshade layer. Verified the DEM decodes to real values:
+      221.7 m at Gurugram, 817.2 m at Bengaluru.
+- [x] 24. **City buildings.** The Carto basemap's vector tiles already contain an OSM
+      `building` source-layer, so we extrude that rather than adding a provider - no
+      extra download. Height expression coalesces `render_height` -> `height` ->
+      storeys x 3.2 -> 3 storeys, so it degrades sanely across tile schemas. The flat
+      2D footprint layers are hidden while extrusions are on to avoid z-fighting.
+- [x] 25. **Sky/atmosphere** per basemap theme.
+- [x] 26. **Models sit on the terrain.** Elevation is sampled per project and passed as
+      the altitude to `getMatrixForModel`, refreshed on idle since DEM tiles load
+      asynchronously. Guarded with a 0.25 m threshold: without it, elevation jitter as
+      tiles refine drives an idle -> repaint -> idle loop that pins the CPU. (Hit that
+      exact loop while building this - do not remove the threshold.)
+- [x] 27. **Toggle** for the whole 3D world in the map tools.
+
+### Verified vs not
+
+Verified programmatically in the browser: terrain active and decoding real elevations,
+DEM source, hillshade layer and city-buildings layer all installed, sky applied without
+error, and the layer's paint expression accepted by MapLibre.
+
+**Not yet verified visually.** The browser tab this session drives kept going hidden,
+and Chrome pauses rendering, tile loading and timers in a hidden tab - so no screenshot
+of the terrain + city buildings, and the building tiles never finished loading for a
+feature query. What still needs a human eye:
+
+1. Do the extruded OSM buildings actually show, and do they have sensible heights (or
+   is everything the 3-storey fallback)?
+2. Does the site plate clip badly anywhere on sloped ground?
+3. Does the sky read well on all three basemaps, especially satellite?
+
+Note for future sessions: in a hidden tab, `setTimeout` is throttled to roughly once a
+minute, so any probe that awaits a sleep will blow the 45s tool timeout. Split the work
+across separate tool calls instead of sleeping inside one.
+
 ## Decisions made
 
 - **MapLibre, not Cesium/Google Photorealistic Tiles.** No API key, no per-load billing,
