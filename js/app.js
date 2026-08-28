@@ -4,7 +4,7 @@ import { SceneManager } from './scene.js';
 import { StreamingManager } from './streaming.js';
 import { MarkerLayer } from './markers.js';
 import { setNightLighting } from './buildings.js';
-import { offsetLngLat, siteCutout } from './geo.js';
+import { offsetLngLat, siteBoxes, hitsAnySite } from './geo.js';
 import * as UI from './ui.js';
 
 const state = {
@@ -74,7 +74,21 @@ async function boot() {
     levelOutWhenZoomedOut();
   });
   // terrain arrives asynchronously; re-seat the models on it once it has
-  map.on('idle', () => scene.updateAltitudes());
+  map.on('idle', () => {
+    scene.updateAltitudes();
+    refreshBuildingCutout();
+  });
+  // tiles stream in for a while after a flight; each arrival is a chance to find
+  // more OSM buildings that sit under a site. Throttled - sourcedata is noisy.
+  let cutoutTimer = null;
+  map.on('sourcedata', (e) => {
+    if (!e.isSourceLoaded || e.sourceId !== buildingSourceId()) return;
+    if (cutoutTimer) return;
+    cutoutTimer = setTimeout(() => {
+      cutoutTimer = null;
+      refreshBuildingCutout();
+    }, 300);
+  });
 
   // MapLibre's `load` can sit pending while basemap tiles trickle in, so the app
   // opens on the first style load and keeps a failsafe behind it.
@@ -201,6 +215,13 @@ function cityBuildingSource() {
   return null;
 }
 
+// Set once per call so the sourcedata hook can match without re-parsing the style.
+let buildingSourceIdCache = null;
+function buildingSourceId() {
+  if (!buildingSourceIdCache) buildingSourceIdCache = cityBuildingSource();
+  return buildingSourceIdCache;
+}
+
 /**
  * Terrain, sky and extruded city buildings - the context a project sits in, the way
  * Apple and Google Maps show it. Re-applied after every style swap, like everything
@@ -257,6 +278,7 @@ function applyWorld() {
  */
 function applyCityBuildings() {
   if (map.getLayer('city-buildings')) map.removeLayer('city-buildings');
+  buildingSourceIdCache = null; // a style swap can rename the source
 
   // the flat 2D footprints would z-fight with the extrusions
   for (const id of ['building', 'building-top']) {
@@ -309,16 +331,51 @@ function applyCityBuildings() {
     },
   };
 
-  // Cut the generic OSM blocks out from under our own projects - otherwise they sit
-  // inside the client's towers. `within` is a per-feature test, so it is applied as a
-  // filter and skipped entirely if this MapLibre build does not support it.
+  map.addLayer(layer, map.getLayer('site-fill') ? 'site-fill' : undefined);
+  // re-apply whatever exclusions previous tiles earned (a style swap resets filters)
+  applyBuildingCutout();
+}
+
+/* OSM buildings that sit under a client's site, by tile feature id. MapLibre's
+ * `within` operator cannot do this job: it silently returns false for Polygon
+ * inputs (only Point/LineString are supported - measured: 0 of 167 buildings
+ * matched), so the cutout is computed here instead. Features are found with
+ * querySourceFeatures as tiles arrive, tested against the padded site outlines,
+ * and excluded with an id filter. Ids accumulate: the same building keeps its OSM
+ * id across zooms, and sites are small, so the set stays tiny. */
+const cutoutIds = new Set();
+let cutoutApplied = false;
+
+function refreshBuildingCutout() {
+  if (!map || !map.getLayer('city-buildings')) return;
+  if (map.getZoom() < WORLD.buildingsMinZoom - 0.6) return;
+  const source = buildingSourceId();
+  if (!source) return;
+
+  let features;
   try {
-    const cutout = siteCutout(state.projects);
-    map.addLayer({ ...layer, filter: ['!', ['within', cutout]] }, map.getLayer('site-fill') ? 'site-fill' : undefined);
-  } catch (err) {
-    console.warn('[world] building cutout unsupported, showing all footprints:', err.message);
-    map.addLayer(layer, map.getLayer('site-fill') ? 'site-fill' : undefined);
+    features = map.querySourceFeatures(source, { sourceLayer: 'building' });
+  } catch {
+    return;
   }
+  const boxes = siteBoxes(state.projects, 12);
+  let grew = false;
+  for (const f of features) {
+    if (f.id === undefined || f.id === null || cutoutIds.has(f.id)) continue;
+    if (hitsAnySite(f.geometry, boxes)) {
+      cutoutIds.add(f.id);
+      grew = true;
+    }
+  }
+  if (grew || !cutoutApplied) applyBuildingCutout();
+}
+
+function applyBuildingCutout() {
+  if (!map || !map.getLayer('city-buildings')) return;
+  const ids = [...cutoutIds];
+  // `['id']` is the feature's own id; a missing id fails the `in` and stays visible
+  map.setFilter('city-buildings', ids.length ? ['!', ['in', ['id'], ['literal', ids]]] : null);
+  cutoutApplied = true;
 }
 
 function toggleWorld3d() {
@@ -388,6 +445,7 @@ function applyFilter() {
 
 const NO_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 let cameraFlight = false; // a programmatic flight is in progress; leave it alone
+let flightSeq = 0; // bumped on every new camera intent, so superseded flights stand down
 
 /**
  * Zooming out from a project leaves the camera tilted and still padded for the
@@ -405,7 +463,64 @@ function levelOutWhenZoomedOut() {
   const padded = pad.top || pad.right || pad.bottom || pad.left;
   if (!tilted && !padded) return;
 
-  map.easeTo({ pitch: 0, padding: NO_PADDING, duration: 700, essential: true });
+  map.easeTo({ pitch: 0, padding: NO_PADDING, duration: 700, essential: true, freezeElevation: true });
+}
+
+/**
+ * Fly to a project. With terrain on, a single flight straight into a pitched target
+ * re-steers elevation every frame while the DEM tiles are still arriving, and lands
+ * roughly 500px off - the site sweeps past and sticks near the top of the screen,
+ * and the first drag then triggers MapLibre's below-terrain correction, which zooms
+ * instead of panning (maplibre #4688 family; measured - see PROGRESS.md).
+ *
+ * When the target's ground elevation is not known yet, fly in two phases: coast to
+ * the neighbourhood flat, which loads its DEM, then tilt down onto the site. Both
+ * phases land exactly. `freezeElevation` on every flight keeps the animation from
+ * being steered mid-air; it is what makes the landing deterministic.
+ */
+/** First user gesture cancels the armed second phase - nobody wants a yank back. */
+function onUserGesture(fn) {
+  const events = ['mousedown', 'wheel', 'touchstart'];
+  const off = () => events.forEach((e) => map.off(e, fn));
+  events.forEach((e) => map.once(e, fn));
+  return off;
+}
+
+function flyToProject(p, wide) {
+  const seq = ++flightSeq;
+  cameraFlight = true;
+  const target = {
+    center: [p.location.lng, p.location.lat],
+    zoom: CAMERA.project.zoom,
+    pitch: CAMERA.project.pitch,
+    bearing: (p.plan.site.rot * 180) / Math.PI + 28,
+  };
+  const pad = wide ? { right: 400, left: 350, top: 0, bottom: 0 } : NO_PADDING;
+
+  let demKnown = false;
+  try {
+    demKnown = Number.isFinite(map.queryTerrainElevation(target.center));
+  } catch { /* terrain off or unsupported */ }
+  if (map.getTerrain() && !demKnown) {
+    const disarm = onUserGesture(() => { flightSeq++; });
+    map.flyTo({
+      ...target,
+      zoom: CAMERA.approach.zoom,
+      pitch: 0,
+      padding: NO_PADDING,
+      duration: CAMERA.approach.duration,
+      essential: true,
+      freezeElevation: true,
+    });
+    map.once('moveend', () => {
+      disarm();
+      if (seq !== flightSeq || state.selectedId !== p.id) return;
+      cameraFlight = true;
+      map.flyTo({ ...target, duration: CAMERA.project.duration, essential: true, freezeElevation: true, padding: pad });
+    });
+  } else {
+    map.flyTo({ ...target, duration: CAMERA.project.duration, essential: true, freezeElevation: true, padding: pad });
+  }
 }
 
 /* --------------------------------------------------------------- actions */
@@ -416,17 +531,7 @@ function selectProject(id) {
   state.selectedId = id;
   streaming.select(id);
 
-  const wide = window.innerWidth > 860;
-  cameraFlight = true;
-  map.flyTo({
-    center: [p.location.lng, p.location.lat],
-    zoom: CAMERA.project.zoom,
-    pitch: CAMERA.project.pitch,
-    bearing: (p.plan.site.rot * 180) / Math.PI + 28,
-    duration: CAMERA.project.duration,
-    essential: true,
-    padding: wide ? { right: 400, left: 350, top: 0, bottom: 0 } : { top: 0, bottom: 0, left: 0, right: 0 },
-  });
+  flyToProject(p, window.innerWidth > 860);
 
   UI.openDetail(p, {
     onClose: closeProject,
@@ -441,6 +546,7 @@ function selectProject(id) {
 function closeProject() {
   if (!state.selectedId) return;
   state.selectedId = null;
+  flightSeq++;
   streaming.select(null);
   stopOrbit();
   UI.closeDetail();
@@ -448,7 +554,7 @@ function closeProject() {
   const pad = map.getPadding();
   if (pad.left || pad.right || pad.top || pad.bottom) {
     cameraFlight = true;
-    map.easeTo({ padding: NO_PADDING, duration: 500, essential: true });
+    map.easeTo({ padding: NO_PADDING, duration: 500, essential: true, freezeElevation: true });
   }
   UI.renderCards(state.filtered, null, selectProject);
 }
@@ -464,6 +570,7 @@ function flyToAmenity(project, amenity) {
   const x = amenity.x * Math.cos(rot) - amenity.z * Math.sin(rot);
   const z = amenity.x * Math.sin(rot) + amenity.z * Math.cos(rot);
   stopOrbit();
+  flightSeq++;
   cameraFlight = true;
   map.flyTo({
     center: offsetLngLat(project.location, x, z),
@@ -471,13 +578,15 @@ function flyToAmenity(project, amenity) {
     pitch: CAMERA.amenity.pitch,
     duration: CAMERA.amenity.duration,
     essential: true,
+    freezeElevation: true,
   });
   UI.toast(amenity.name + ' - ' + amenity.blurb);
 }
 
 function zoomToCluster(center, members) {
+  flightSeq++;
   cameraFlight = true;
-  map.flyTo({ center, zoom: Math.min(map.getZoom() + 2.6, 15), duration: 900, essential: true });
+  map.flyTo({ center, zoom: Math.min(map.getZoom() + 2.6, 15), duration: 900, essential: true, freezeElevation: true });
 }
 
 function openImmersive(p) {
@@ -496,8 +605,9 @@ async function share(p) {
 
 function resetView() {
   closeProject();
+  flightSeq++;
   cameraFlight = true;
-  map.flyTo({ ...CAMERA.overview, duration: 2000, essential: true, padding: NO_PADDING });
+  map.flyTo({ ...CAMERA.overview, duration: 2000, essential: true, padding: NO_PADDING, freezeElevation: true });
 }
 
 /* ----------------------------------------------------------------- orbit */

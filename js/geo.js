@@ -84,17 +84,61 @@ export function siteFeature(project, padM = 0) {
 }
 
 /**
- * Every site as one MultiPolygon, for cutting the basemap's OSM buildings out from
- * under our own geometry. Without this, the generic OSM blocks for a plot sit inside
- * the client's actual towers.
- *
- * Padded outwards a little so a building sitting right on the boundary goes too.
+ * Padded site outlines with bounding boxes, for testing tile features against.
+ * Used by the city-building cutout: MapLibre's `within` operator silently returns
+ * false for Polygon inputs (it only supports Point and LineString), so a style
+ * filter can never ask "is this building polygon inside a site" - instead we find
+ * the overlapping buildings ourselves and exclude them by feature id.
  */
-export function siteCutout(projects, padM = 12) {
-  return {
-    type: 'MultiPolygon',
-    coordinates: projects.map((p) => siteFeature(p, padM).geometry.coordinates),
-  };
+export function siteBoxes(projects, padM = 12) {
+  return projects.map((p) => {
+    const ring = siteFeature(p, padM).geometry.coordinates[0];
+    const lngs = ring.map((c) => c[0]);
+    const lats = ring.map((c) => c[1]);
+    return {
+      projectId: p.id,
+      ring,
+      bbox: [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
+    };
+  });
+}
+
+const pointInRing = (x, y, ring) => {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+};
+
+/**
+ * Whether a tile feature's geometry touches any site. A cheap bbox reject first,
+ * then two containment tests so a building straddling the boundary is caught too
+ * (either of its vertices inside the site, or a site vertex inside the building).
+ */
+export function hitsAnySite(geometry, boxes) {
+  const polys =
+    geometry.type === 'Polygon' ? [geometry.coordinates]
+    : geometry.type === 'MultiPolygon' ? geometry.coordinates
+    : [];
+  for (const box of boxes) {
+    for (const poly of polys) {
+      const ring = poly[0];
+      let lx = Infinity, ly = Infinity, hx = -Infinity, hy = -Infinity;
+      for (const [x, y] of ring) {
+        if (x < lx) lx = x;
+        if (x > hx) hx = x;
+        if (y < ly) ly = y;
+        if (y > hy) hy = y;
+      }
+      if (hx < box.bbox[0] || hy < box.bbox[1] || lx > box.bbox[2] || ly > box.bbox[3]) continue;
+      if (ring.some(([x, y]) => pointInRing(x, y, box.ring))) return true;
+      if (box.ring.some(([x, y]) => pointInRing(x, y, ring))) return true;
+    }
+  }
+  return false;
 }
 
 /**

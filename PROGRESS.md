@@ -265,9 +265,82 @@ satellite basemap?
       `LOD.modelMinZoom` so geometry starts later, or skip the three.js pass entirely
       for models below a few dozen pixels on screen.
 
+## Round 5 (2026-08-29) - the camera landed 500px off, and the cutout never worked
+
+Naman reported three things on Dream Acres: clicking a sidebar card "doesn't set the
+camera properly", dragging the map afterwards "shifts forward and messes up the
+camera", and OSM buildings still sit under the project. All three were real, and the
+first two turned out to be one bug.
+
+- [x] 33. **Selection camera landed ~500px too high.** The earlier "framing is
+      correct, 3 px off" measurement was half a measurement - it checked the x axis
+      only. Re-measured both axes headlessly: x was 3 px off, but the pin landed at
+      y=105 on a 1200 px viewport instead of y=600. The site swept up past centre
+      during the flight and stuck near the top of the screen.
+
+      Root cause, isolated by flying the same target six ways with a real browser:
+      with terrain on, `flyTo` re-steers the camera elevation every animation frame
+      while DEM tiles are still arriving, and lands wherever the tiles got to - the
+      maplibre #4688 family. Measured facts, in order:
+      - `jumpTo` to the same target lands exactly, whatever the elevation state.
+      - `flyTo` + `freezeElevation: true` lands exactly too, but the path still
+        overshoots and snaps back at the final frame.
+      - passing `elevation: 896` is worse, not better: the flight bails to an
+        instant jump, and until the DEM converges the pin renders off-screen.
+      - the clean flight is two-phase: coast to the neighbourhood flat
+        (z14, pitch 0 - which loads its DEM), then tilt down onto the site. No
+        overshoot, no snap, exact landing.
+
+      So selection now flies via `flyToProject`: two phases when the target's ground
+      elevation isn't known yet, single `freezeElevation` flight when it is. Every
+      flight in the app passes `freezeElevation` now. A flight sequence counter plus
+      a first-gesture guard cancels the second phase if the user clicks elsewhere or
+      grabs the map mid-air.
+
+- [x] 34. **Dragging "shifted forward".** Measured during a plain 300x150 px drag:
+      zoom went 16.1 -> 17.319 with the ground point barely moving. That is
+      MapLibre's below-terrain correction (`_elevateCameraIfInsideTerrain`): the
+      mis-landed camera sat around 690 m above sea level over Bengaluru's 896 m
+      ground, so the first interaction tripped the "camera is inside the hill"
+      fix, which raises zoom while keeping the ground position - reads as the map
+      lunging toward you. With a correct landing the same drag moves zoom by 0.005.
+      Side effect worth knowing: the pre-existing `[object Error]` console spam on
+      main (10 per selection) comes from this same correction path and is gone too.
+      Note terrain-aware dragPan still pans a little faster than the cursor over
+      elevated ground; that is upstream design, not our bug.
+
+- [x] 35. **The OSM cutout had never excluded anything.** Item 30's filter was
+      verified "accepted by the style" but never measured against real buildings.
+      Measured now: `within` returned false for all 167 building features under a
+      pitched camera - the operator only supports Point and LineString inputs, and
+      a building footprint is a Polygon, so `['!', ['within', ...]]` was a no-op
+      that showed everything.
+
+      Replacement: MapLibre can't test "polygon inside polygon" in a style filter,
+      so the overlap is computed in JS instead. As tiles arrive
+      (`sourcedata`, throttled, plus `idle`), `querySourceFeatures` hands us each
+      tile's buildings; `hitsAnySite` tests them against the padded site outlines
+      (bbox reject, then containment in both directions, so straddling buildings
+      are caught - the thing `within` also would have missed); matching feature ids
+      go into a set and the layer filters with `['!', ['in', ['id'], [literal]]]`.
+      Ids accumulate across zooms because Carto exposes stable OSM ids, and the
+      filter is re-applied after every style swap.
+
+      Verified on Dream Acres: 19-20 ids collected, then 0 of 81 grid cells inside
+      the site hit a city building at z16.1, z15, z14.6, after a drag, and after
+      flying back over the site. Known window: on the FIRST approach to a project
+      the basemap's blocks are visible for about two seconds until the tiles that
+      carry them arrive - the cutout can only exclude what has been downloaded.
+      After that first pass the ids persist.
+
+      Probe-craft note: `querySourceFeatures` needs the exact source id - Carto's
+      is `carto`, not `composite` (a wrong-but-existing id returns [] silently).
+
 Note for future sessions: in a hidden tab, `setTimeout` is throttled to roughly once a
 minute, so any probe that awaits a sleep will blow the 45s tool timeout. Split the work
-across separate tool calls instead of sleeping inside one.
+across separate tool calls instead of sleeping inside one. Headless Chrome works well
+for this app with `--enable-unsafe-swiftshader` and the backgrounding flags off;
+`window.__app` gives every probe its camera and registry handles.
 
 ## Decisions made
 

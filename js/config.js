@@ -137,7 +137,13 @@ LOD.maxResidentModels = PERF.maxResidentModels;
 
 export const CAMERA = {
   overview: { zoom: 2.7, pitch: 0, bearing: 0, center: [78.9, 21.6] },
-  project: { zoom: 16.1, pitch: 62, duration: 2600 },
+  /**
+   * Selection flies in two phases when the target's terrain is not loaded yet
+   * (see flyToProject in app.js): coast to the neighbourhood flat, then tilt down.
+   * The phase durations sum to what the single flight used to be.
+   */
+  approach: { zoom: 14, duration: 1200 },
+  project: { zoom: 16.1, pitch: 62, duration: 1400 },
   amenity: { zoom: 17.6, pitch: 70, duration: 1500 },
   orbitSpeed: 0.045, // degrees per frame
   /**
