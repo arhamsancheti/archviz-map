@@ -1,0 +1,209 @@
+# Terrace - a 3D project map for the web
+
+A lightweight web counterpart to our Unreal archviz product. One map carries every
+client's project: you see them as pins across the country, fly in, and the project's
+3D model streams in at the right moment. Click it for pricing, amenities, unit mix,
+and a hand-off into the full immersive build.
+
+Runs in a browser, on a phone, with no plugin and no API keys.
+
+## Run it
+
+```bash
+cd archviz-map
+node serve.mjs          # http://localhost:5173
+```
+
+Any static server works; `serve.mjs` is here so there is nothing to install.
+Deep links work too: `http://localhost:5173/?p=lakeside-habitat`.
+
+## What you can do in it
+
+- The map opens as a **globe**. Pan and spin it; MapLibre eases into the flat map by
+  itself as you zoom in, so close-up work is unaffected. The globe/flat button is in
+  the bottom-right tools.
+- Projects cluster when you are far out and label themselves as you get closer.
+- Click a project card or its pin. The camera flies in, the 3D master plan streams in,
+  and the detail panel opens.
+- **Overview / Amenities / Units** tabs. Clicking an amenity flies the camera to it.
+- Amenity hotspots appear on the model past zoom 16. Hover one to read its name.
+- **Day / Night / Satellite** basemaps. Night relights the models and turns the tower
+  windows on.
+- Orbit button circles the selected project; reset returns to the country view.
+- Search box filters by project, builder, locality or city. `/` focuses it, `Esc`
+  closes the panel.
+- The **Streaming** panel bottom-left shows the LOD tier, how many models are resident
+  and how much geometry is on the GPU. It is there to make the loading strategy
+  visible in a demo.
+
+## How the loading works
+
+The whole point of this build is that a hundred clients cannot all be in memory at once.
+
+| Tier | When | What renders | Cost |
+|---|---|---|---|
+| Pin | zoom < 12.5 | clustered dots from the registry | a few KB, once |
+| Massing | 12.5 - 14.6 | tower footprints extruded by the GPU straight from the registry numbers | no asset fetch at all |
+| Model | zoom > 14.6, in viewport | the real geometry, nearest 4 projects only | only what is on screen |
+| Detail | zoom > 16, selected | amenity hotspots, shadows | one project |
+
+`js/streaming.js` re-evaluates this on every camera move: projects outside the padded
+viewport are dropped, the nearest few get geometry, the selected one is pinned, and
+anything over the LRU or memory budget is disposed (geometry freed, not just hidden).
+Textures and materials are shared across every project, so the ninth tower costs
+geometry only.
+
+`SIMULATE_NETWORK` at the top of `js/streaming.js` adds a delay standing in for the
+real CDN fetch of a client's `.glb`, sized from the asset bytes in the registry.
+Procedural builds finish in milliseconds, so without it you cannot see the streaming
+happen. Set `enabled: false` for raw speed.
+
+## Adding a client project
+
+Everything the app knows lives in `data/projects.json`. Edit
+`tools/gen-projects.mjs` and re-run it:
+
+```bash
+node tools/gen-projects.mjs
+```
+
+One entry needs: name, developer, city, locality, lng/lat, status, price, accent
+colour, and the facts shown in the panel. The generator turns tower count, floor range
+and land area into a plausible master plan (`plan`), which is what the prototype draws.
+
+**When a real model exists**, set `plan.asset.url` to its `.glb` and the loader uses it
+instead of the procedural plan - no other code changes. `js/buildings.js` already
+branches on this and disposes GLTF geometry and textures on eviction.
+
+## Placing a real model (lat/lng + .glb)
+
+Short answer: yes. Give me a location and a model and it lands on the map. The loader
+already branches to glTF, and placement is driven by data, not code.
+
+**What the file needs to be**
+
+| Thing | What works | If it is not |
+|---|---|---|
+| Format | `.glb` (or `.gltf` + `.bin`), Draco or Meshopt compressed | anything else - convert first |
+| Units | metres | set `scale` (Unreal centimetres -> `0.01`) |
+| Up axis | Y-up (what the glTF spec and Unreal's exporter produce) | a Z-up export lands on its side |
+| Origin | model pivot at the point the lat/lng refers to, ideally the site centre | nudge with `offset` in metres |
+| Heading | site aligned to true north | set `heading`, degrees clockwise from north |
+
+Vertical is handled for you: `autoGround` drops the model so its lowest point rests on
+the ground. There is no terrain yet, so ground is a flat plane at altitude 0.
+
+**What I need from you per project:** the lat/lng of the model's origin, which way it
+faces, and what units it was exported in. Everything else is derivable.
+
+**The registry entry**
+
+```json
+"asset": {
+  "format": "glb",
+  "lods": {
+    "high": { "url": "models/lakeside/high.glb", "bytes": 7400000 },
+    "mid":  { "url": "models/lakeside/mid.glb",  "bytes": 1800000 },
+    "low":  { "url": "models/lakeside/low.glb",  "bytes":  420000 }
+  },
+  "scale": 1,
+  "heading": 0,
+  "offset": { "east": 0, "up": 0, "south": 0 },
+  "autoGround": true
+}
+```
+
+A single `"url"` instead of `lods` works too - every level then uses that one file.
+
+If the size looks wrong, the console says so: the loader measures the model footprint
+on load and warns with the exact `scale` to set if it looks like a unit mismatch.
+
+## Making the LODs, and optimising the high-poly mesh
+
+```bash
+npm install                                   # once
+node tools/prepare-model.mjs export.glb --id lakeside-habitat
+```
+
+That emits `models/<id>/{high,mid,low}.glb` and prints the `asset` block above, filled
+in, ready to paste.
+
+Every level gets the same cleanup first - dedupe repeated meshes and materials, flatten
+the scene graph, **join meshes** (draw calls are usually the real cost in an archviz
+export, not triangles), weld vertices, drop unused data, then Draco-compress. On top of
+that, `mid` keeps ~35% of the triangles and `low` ~8%, using meshoptimizer's simplifier,
+and textures are resized per level (2048 / 1024 / 256) if `sharp` is installed.
+
+Measured on the sample export (`node tools/make-sample-glb.mjs sample.glb`):
+
+| Level | Size | Triangles | Draw calls |
+|---|---|---|---|
+| source | 442 KB | 18,480 | 5 |
+| high | 27 KB | 18,480 | 1 |
+| mid | 16 KB | 6,468 | 1 |
+| low | 5 KB | 1,477 | 1 |
+
+The high build keeps every triangle and is still 94% smaller, because most of the win
+is compression and joining, not decimation. Real exports with textures compress less
+dramatically but gain more from the texture resizing.
+
+**Which level loads when** is in `LOD.assetLevels` (`js/config.js`): low from zoom 14.6,
+mid from 15.6, high from 16.4. The streaming manager swaps builds as you move, and only
+frees the old one once the new one has finished loading, so there is no empty frame.
+The HUD shows the current level next to the tier.
+
+## Files
+
+```
+index.html            shell
+css/app.css           all styling, light + dark
+js/config.js          basemaps, LOD thresholds, camera presets, formatters
+js/geo.js             metres <-> lng/lat, footprint polygons
+js/buildings.js       procedural master plan, shared texture/material cache, dispose
+js/scene.js           three.js layer sharing MapLibre's WebGL context, lights, shadows
+js/streaming.js       viewport culling, load queue, LRU eviction, memory accounting
+js/markers.js         screen-space pin clustering, amenity hotspots
+js/ui.js              list, filters, detail panel, HUD, toasts
+js/app.js             wiring
+data/projects.json    the client registry (generated)
+tools/gen-projects.mjs  generator for the above
+tools/prepare-model.mjs optimise a client export into high/mid/low builds
+tools/make-sample-glb.mjs  throwaway export for trying the pipeline
+serve.mjs             zero-dependency static server
+PROGRESS.md           build log, decisions, what is left
+```
+
+`window.__app` exposes `{ map, scene, streaming, markers, state }` in the console for
+poking at it live.
+
+## Choices worth knowing
+
+- **MapLibre GL JS v5, not Cesium or Google's photorealistic tiles.** No API key, no
+  per-load billing, and the vector basemap reads closer to Apple Maps. v5 is what
+  gives us globe projection. Cesium plus 3D Tiles is the upgrade path if we need
+  terrain and real city meshes.
+- **Each project renders in its own local frame**, from
+  `map.transform.getMatrixForModel(lngLat, 0)`, one render pass per resident model.
+  That is what puts geometry in the right place on a curved globe, and it avoids
+  placing objects directly in mercator units (float32 precision falls apart there).
+- **three.js shares MapLibre's WebGL context** rather than sitting on a second canvas,
+  so buildings share the map's depth buffer and camera. One context, correct occlusion.
+- **Basemaps come from Carto (day/night) and Esri (satellite)**, both usable without a
+  key. Attribution is on the map. For production, check their terms or move to a
+  self-hosted tile server.
+
+## What production needs next
+
+1. **Real geometry pipeline.** Unreal to glTF, Draco-compressed, ideally cut into
+   3D Tiles per project so a large township streams progressively instead of as one
+   file. Host on a CDN.
+2. **Interiors.** Keep them in the Unreal build and deep-link, or pixel-stream a
+   session on demand from the button that is already wired.
+3. **Admin per client** to upload models and edit project copy, replacing the
+   generated JSON.
+4. **Analytics** - which projects get opened, how long people stay, where from. This is
+   the thing builders will pay for on top of the model.
+5. **Real placement.** Right now a project sits at its pin with a generated footprint.
+   Real projects need a surveyed origin, rotation and site polygon.
+6. **Mobile pass.** The layout adapts, but test GPU memory budgets on mid-range
+   Android; `LOD.maxResidentModels` and `memoryBudgetMB` are the dials.
