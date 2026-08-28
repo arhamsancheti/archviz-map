@@ -1,5 +1,5 @@
 /** Wiring: map + scene + streaming + UI. */
-import { BASEMAPS, LOD, CAMERA } from './config.js';
+import { BASEMAPS, LOD, CAMERA, WORLD } from './config.js';
 import { SceneManager } from './scene.js';
 import { StreamingManager } from './streaming.js';
 import { MarkerLayer } from './markers.js';
@@ -16,6 +16,7 @@ const state = {
   basemap: 'day',
   orbiting: false,
   globe: true,
+  world3d: true,
 };
 
 const $ = (s) => document.querySelector(s);
@@ -52,6 +53,7 @@ async function boot() {
   map.on('style.load', () => {
     applyProjection();
     installLayers();
+    applyWorld();
     scene.setTheme(BASEMAPS[state.basemap]);
     setNightLighting(BASEMAPS[state.basemap].theme === 'dark');
     streaming.update();
@@ -70,6 +72,8 @@ async function boot() {
     streaming.update();
     syncAmenities();
   });
+  // terrain arrives asynchronously; re-seat the models on it once it has
+  map.on('idle', () => scene.updateAltitudes());
 
   // MapLibre's `load` can sit pending while basemap tiles trickle in, so the app
   // opens on the first style load and keeps a failsafe behind it.
@@ -185,6 +189,117 @@ function toggleGlobe() {
   UI.toast(state.globe ? 'Globe view' : 'Flat map');
 }
 
+
+/* ------------------------------------------------------------------- world */
+
+/** The basemap layer that carries OSM building footprints, if this style has one. */
+function cityBuildingSource() {
+  for (const l of map.getStyle().layers || []) {
+    if (l['source-layer'] === 'building' && l.source) return l.source;
+  }
+  return null;
+}
+
+/**
+ * Terrain, sky and extruded city buildings - the context a project sits in, the way
+ * Apple and Google Maps show it. Re-applied after every style swap, like everything
+ * else we own.
+ */
+function applyWorld() {
+  const cfg = BASEMAPS[state.basemap];
+  try {
+    map.setSky({
+      'sky-color': cfg.sky.top,
+      'horizon-color': cfg.sky.bottom,
+      'fog-color': cfg.sky.bottom,
+      'sky-horizon-blend': 0.6,
+      'horizon-fog-blend': 0.6,
+      'fog-ground-blend': 0.08,
+      'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 0.9, 9, 0.6, 13, 0.15],
+    });
+  } catch (err) {
+    console.warn('[world] sky unavailable:', err.message);
+  }
+
+  try {
+    if (!map.getSource(WORLD.dem.id)) map.addSource(WORLD.dem.id, WORLD.dem.spec);
+
+    if (state.world3d) {
+      map.setTerrain({ source: WORLD.dem.id, exaggeration: WORLD.exaggeration });
+      if (!map.getLayer('hillshade')) {
+        map.addLayer(
+          {
+            id: 'hillshade',
+            type: 'hillshade',
+            source: WORLD.dem.id,
+            paint: { 'hillshade-exaggeration': WORLD.hillshade },
+          },
+          map.getLayer('site-fill') ? 'site-fill' : undefined
+        );
+      }
+    } else {
+      map.setTerrain(null);
+      if (map.getLayer('hillshade')) map.removeLayer('hillshade');
+    }
+  } catch (err) {
+    console.warn('[world] terrain unavailable:', err.message);
+  }
+
+  applyCityBuildings();
+  scene.updateAltitudes();
+}
+
+/**
+ * Extrude the basemap's own building footprints. They are already inside the vector
+ * tiles the map is downloading, so this costs no extra request - and it is what makes
+ * a project read as part of a city instead of floating on a diagram.
+ */
+function applyCityBuildings() {
+  if (map.getLayer('city-buildings')) map.removeLayer('city-buildings');
+
+  // the flat 2D footprints would z-fight with the extrusions
+  for (const id of ['building', 'building-top']) {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', state.world3d ? 'none' : 'visible');
+  }
+  if (!state.world3d) return;
+
+  const source = cityBuildingSource();
+  if (!source) return; // a raster basemap (satellite) carries no footprints
+
+  const dark = BASEMAPS[state.basemap].theme === 'dark';
+  map.addLayer(
+    {
+      id: 'city-buildings',
+      type: 'fill-extrusion',
+      source,
+      'source-layer': 'building',
+      minzoom: WORLD.buildingsMinZoom,
+      paint: {
+        'fill-extrusion-color': dark ? '#28303f' : '#dedbd4',
+        // schemas differ on the attribute name; fall back to storeys, then a guess
+        'fill-extrusion-height': [
+          'coalesce',
+          ['get', 'render_height'],
+          ['get', 'height'],
+          ['*', ['coalesce', ['get', 'levels'], ['get', 'building:levels'], 3], 3.2],
+        ],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
+        'fill-extrusion-opacity': WORLD.buildingOpacity,
+        'fill-extrusion-vertical-gradient': true,
+      },
+    },
+    map.getLayer('site-fill') ? 'site-fill' : undefined
+  );
+}
+
+function toggleWorld3d() {
+  state.world3d = !state.world3d;
+  const btn = $('#btn-3d');
+  if (btn) btn.setAttribute('aria-pressed', String(state.world3d));
+  applyWorld();
+  UI.toast(state.world3d ? 'Terrain and city buildings on' : 'Flat basemap');
+}
+
 /* -------------------------------------------------------------------- UI */
 
 function buildChrome() {
@@ -209,6 +324,7 @@ function buildChrome() {
   $('#hud-toggle').onclick = () => $('#hud').classList.toggle('closed');
   $('#btn-orbit').onclick = toggleOrbit;
   $('#btn-globe').onclick = toggleGlobe;
+  $('#btn-3d').onclick = toggleWorld3d;
   $('#btn-reset').onclick = resetView;
 
   document.addEventListener('keydown', (e) => {

@@ -71,6 +71,35 @@ export const LOD = {
   memoryBudgetMB: 220,    // soft cap; the HUD turns amber past this
 };
 
+/**
+ * The 3D world our projects sit in - the Apple/Google-Maps-style context.
+ *
+ * Terrain comes from the Mapzen/AWS open elevation tiles, which are free and need
+ * no key. City buildings come from the OSM building footprints already inside the
+ * basemap's vector tiles, extruded by their height tags - so they cost no extra
+ * download beyond tiles the map is fetching anyway.
+ *
+ * The paid-but-prettier options (Google Photorealistic 3D Tiles, Cesium Ion) both
+ * need a key and billing; see README.
+ */
+export const WORLD = {
+  dem: {
+    id: 'terrain-dem',
+    spec: {
+      type: 'raster-dem',
+      tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+      encoding: 'terrarium',
+      tileSize: 256,
+      maxzoom: 14,
+      attribution: 'Elevation: Mapzen / AWS Open Data',
+    },
+  },
+  exaggeration: 1.0, // real elevation; raise for drama on hill sites
+  hillshade: 0.3,
+  buildingsMinZoom: 14,
+  buildingOpacity: 0.92,
+};
+
 export const CAMERA = {
   overview: { zoom: 2.7, pitch: 0, bearing: 0, center: [78.9, 21.6] },
   project: { zoom: 16.1, pitch: 62, duration: 2600 },
