@@ -1,10 +1,10 @@
 /** Wiring: map + scene + streaming + UI. */
-import { BASEMAPS, LOD, CAMERA, WORLD } from './config.js';
+import { BASEMAPS, LOD, CAMERA, WORLD, PERF } from './config.js';
 import { SceneManager } from './scene.js';
 import { StreamingManager } from './streaming.js';
 import { MarkerLayer } from './markers.js';
 import { setNightLighting } from './buildings.js';
-import { offsetLngLat } from './geo.js';
+import { offsetLngLat, siteCutout } from './geo.js';
 import * as UI from './ui.js';
 
 const state = {
@@ -36,7 +36,7 @@ async function boot() {
     center: CAMERA.overview.center,
     zoom: CAMERA.overview.zoom,
     pitch: 0,
-    antialias: true,
+    antialias: PERF.antialias,
     attributionControl: { compact: true },
     maxPitch: 78,
   });
@@ -268,29 +268,48 @@ function applyCityBuildings() {
   if (!source) return; // a raster basemap (satellite) carries no footprints
 
   const dark = BASEMAPS[state.basemap].theme === 'dark';
-  map.addLayer(
-    {
-      id: 'city-buildings',
-      type: 'fill-extrusion',
-      source,
-      'source-layer': 'building',
-      minzoom: WORLD.buildingsMinZoom,
-      paint: {
-        'fill-extrusion-color': dark ? '#28303f' : '#dedbd4',
-        // schemas differ on the attribute name; fall back to storeys, then a guess
-        'fill-extrusion-height': [
-          'coalesce',
-          ['get', 'render_height'],
-          ['get', 'height'],
-          ['*', ['coalesce', ['get', 'levels'], ['get', 'building:levels'], 3], 3.2],
-        ],
-        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
-        'fill-extrusion-opacity': WORLD.buildingOpacity,
-        'fill-extrusion-vertical-gradient': true,
-      },
+  const z0 = WORLD.buildingsMinZoom;
+  const z1 = WORLD.buildingFadeZoom;
+
+  const height = [
+    // schemas differ on the attribute name; fall back to storeys, then a guess
+    'coalesce',
+    ['get', 'render_height'],
+    ['get', 'height'],
+    ['*', ['coalesce', ['get', 'levels'], ['get', 'building:levels'], 3], 3.2],
+  ];
+
+  const layer = {
+    id: 'city-buildings',
+    type: 'fill-extrusion',
+    source,
+    'source-layer': 'building',
+    minzoom: z0,
+    paint: {
+      'fill-extrusion-color': dark ? '#28303f' : '#dedbd4',
+      // Grow and fade in over a zoom rather than appearing at full height in one
+      // frame, which reads as the city snapping into place.
+      'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], z0, 0, z1, height],
+      'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
+      'fill-extrusion-opacity': [
+        'interpolate', ['linear'], ['zoom'],
+        z0, 0,
+        z0 + (z1 - z0) * 0.5, WORLD.buildingOpacity,
+      ],
+      'fill-extrusion-vertical-gradient': true,
     },
-    map.getLayer('site-fill') ? 'site-fill' : undefined
-  );
+  };
+
+  // Cut the generic OSM blocks out from under our own projects - otherwise they sit
+  // inside the client's towers. `within` is a per-feature test, so it is applied as a
+  // filter and skipped entirely if this MapLibre build does not support it.
+  try {
+    const cutout = siteCutout(state.projects);
+    map.addLayer({ ...layer, filter: ['!', ['within', cutout]] }, map.getLayer('site-fill') ? 'site-fill' : undefined);
+  } catch (err) {
+    console.warn('[world] building cutout unsupported, showing all footprints:', err.message);
+    map.addLayer(layer, map.getLayer('site-fill') ? 'site-fill' : undefined);
+  }
 }
 
 function toggleWorld3d() {
@@ -298,6 +317,9 @@ function toggleWorld3d() {
   const btn = $('#btn-3d');
   if (btn) btn.setAttribute('aria-pressed', String(state.world3d));
   applyWorld();
+  // the retaining skirt only exists when there is terrain, so rebuild what is resident
+  scene.clear();
+  streaming.update();
   UI.toast(state.world3d ? 'Terrain and city buildings on' : 'Flat basemap');
 }
 
