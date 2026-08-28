@@ -1,0 +1,23 @@
+{
+  "name": "archviz-map",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Web 3D project map - all client projects on one map, models streamed by viewport",
+  "scripts": {
+    "start": "node serve.mjs",
+    "registry": "node tools/gen-projects.mjs",
+    "prepare-model": "node tools/prepare-model.mjs"
+  },
+  "comment": "The app itself has no runtime dependencies - it loads MapLibre and three.js from a CDN and needs nothing installed. These are only for the offline model pipeline (tools/prepare-model.mjs).",
+  "devDependencies": {
+    "@gltf-transform/core": "^4.1.0",
+    "@gltf-transform/extensions": "^4.1.0",
+    "@gltf-transform/functions": "^4.1.0",
+    "draco3dgltf": "^1.5.7",
+    "meshoptimizer": "^0.22.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.5"
+  }
+}
