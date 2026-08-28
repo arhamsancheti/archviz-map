@@ -1,0 +1,1881 @@
+{
+  "version": 1,
+  "generated": "2026-08-28T18:02:40.219Z",
+  "projects": [
+    {
+      "id": "lakeside-habitat",
+      "name": "Lakeside Habitat",
+      "developer": "Prestige Group",
+      "city": "Bengaluru",
+      "locality": "Varthur",
+      "location": {
+        "lng": 77.7343,
+        "lat": 12.9364
+      },
+      "status": "Ready to Move",
+      "tagline": "A lakefront township wrapped around 27 acres of open water.",
+      "accent": "#4FA3FF",
+      "price": {
+        "from": 21500000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Handed over",
+        "landArea": "102 acres",
+        "towers": 9,
+        "units": 3100,
+        "floors": "G+24",
+        "openSpace": "80%",
+        "unitTypes": [
+          "2 BHK",
+          "3 BHK",
+          "4 BHK"
+        ],
+        "sizeRange": "1,285 - 3,410 sq.ft.",
+        "rera": "PRM/KA/RERA/1251/446/PR/171015/000534"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/lakeside-habitat",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 796,
+          "d": 519,
+          "rot": 0.188
+        },
+        "podium": {
+          "w": 100,
+          "d": 57.9,
+          "height": 15.9
+        },
+        "water": {
+          "w": 74.4,
+          "d": 24,
+          "x": 24.6,
+          "z": 43.1
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -258.6,
+            "z": -150.2,
+            "w": 25.3,
+            "d": 21.8,
+            "floors": 24,
+            "height": 83.3,
+            "rot": 0.14,
+            "style": "stone",
+            "crown": true
+          },
+          {
+            "id": "T2",
+            "x": -82.7,
+            "z": -143.4,
+            "w": 26.4,
+            "d": 28.5,
+            "floors": 18,
+            "height": 64.8,
+            "rot": -0.109,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 93.5,
+            "z": -137.7,
+            "w": 34.4,
+            "d": 27,
+            "floors": 21,
+            "height": 69.8,
+            "rot": -0.126,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T4",
+            "x": 260,
+            "z": -142.5,
+            "w": 30.2,
+            "d": 27.4,
+            "floors": 23,
+            "height": 79,
+            "rot": -0.085,
+            "style": "stone",
+            "crown": true
+          },
+          {
+            "id": "T5",
+            "x": -263.4,
+            "z": -0.8,
+            "w": 31.1,
+            "d": 26.6,
+            "floors": 21,
+            "height": 74.6,
+            "rot": -0.028,
+            "style": "stone",
+            "crown": true
+          },
+          {
+            "id": "T6",
+            "x": -90,
+            "z": -4.7,
+            "w": 33.6,
+            "d": 25,
+            "floors": 21,
+            "height": 77.8,
+            "rot": 0.179,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T7",
+            "x": 90.7,
+            "z": 7.6,
+            "w": 31.1,
+            "d": 26.4,
+            "floors": 22,
+            "height": 81.6,
+            "rot": -0.128,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T8",
+            "x": 255.3,
+            "z": -3,
+            "w": 37.2,
+            "d": 25.2,
+            "floors": 22,
+            "height": 81.4,
+            "rot": 0.182,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T9",
+            "x": -264.5,
+            "z": 136.8,
+            "w": 28.2,
+            "d": 20.8,
+            "floors": 20,
+            "height": 72.7,
+            "rot": 0.017,
+            "style": "mixed",
+            "crown": false
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Tennis Court",
+            "kind": "sport",
+            "blurb": "Championship-surface court, floodlit for night play.",
+            "x": 199.9,
+            "z": 12.4
+          },
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": 122.4,
+            "z": 164.2
+          },
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": -49.1,
+            "z": 144.1
+          },
+          {
+            "name": "Pet Park",
+            "kind": "pet",
+            "blurb": "Fenced off-leash run with agility features and a wash bay.",
+            "x": -172.5,
+            "z": 99.1
+          },
+          {
+            "name": "Kids Play Zone",
+            "kind": "kids",
+            "blurb": "Soft-fall play equipment, splash pad and a shaded parents deck.",
+            "x": -318.7,
+            "z": -60.4
+          },
+          {
+            "name": "Yoga Deck",
+            "kind": "wellness",
+            "blurb": "An elevated timber deck oriented east for sunrise sessions.",
+            "x": -119.4,
+            "z": -141.9
+          },
+          {
+            "name": "Retail Boulevard",
+            "kind": "retail",
+            "blurb": "Ground-level convenience retail, cafe and pharmacy.",
+            "x": 15.9,
+            "z": -164.2
+          },
+          {
+            "name": "Central Green",
+            "kind": "park",
+            "blurb": "A three-acre landscaped spine connecting every tower lobby.",
+            "x": 162.3,
+            "z": -74.9
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 5299853
+        }
+      }
+    },
+    {
+      "id": "cornerstone-utopia",
+      "name": "Cornerstone Utopia",
+      "developer": "Brigade Group",
+      "city": "Bengaluru",
+      "locality": "Varthur Road",
+      "location": {
+        "lng": 77.7212,
+        "lat": 12.9448
+      },
+      "status": "Under Construction",
+      "tagline": "Forty amenity zones stacked across a seven-tower urban campus.",
+      "accent": "#7C5CFF",
+      "price": {
+        "from": 9800000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Dec 2027",
+        "landArea": "47 acres",
+        "towers": 7,
+        "units": 2400,
+        "floors": "G+31",
+        "openSpace": "75%",
+        "unitTypes": [
+          "1 BHK",
+          "2 BHK",
+          "3 BHK"
+        ],
+        "sizeRange": "705 - 1,960 sq.ft.",
+        "rera": "PRM/KA/RERA/1251/446/PR/210330/003926"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/cornerstone-utopia",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 461,
+          "d": 413,
+          "rot": 0.261
+        },
+        "podium": {
+          "w": 91.8,
+          "d": 77.5,
+          "height": 14.1
+        },
+        "water": {
+          "w": 48,
+          "d": 18.6,
+          "x": -29.9,
+          "z": 35
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -154.6,
+            "z": -86.5,
+            "w": 33.8,
+            "d": 23.1,
+            "floors": 23,
+            "height": 85.4,
+            "rot": 0.076,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T2",
+            "x": -53.5,
+            "z": -85,
+            "w": 27.1,
+            "d": 28.2,
+            "floors": 30,
+            "height": 106.2,
+            "rot": 0.05,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 55.2,
+            "z": -74.3,
+            "w": 32.4,
+            "d": 29.8,
+            "floors": 26,
+            "height": 97,
+            "rot": -0.209,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T4",
+            "x": 142.9,
+            "z": -73.3,
+            "w": 31.5,
+            "d": 24.7,
+            "floors": 26,
+            "height": 86.5,
+            "rot": -0.164,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T5",
+            "x": -152.6,
+            "z": 84.1,
+            "w": 37.7,
+            "d": 22.5,
+            "floors": 25,
+            "height": 92,
+            "rot": -0.189,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T6",
+            "x": -58,
+            "z": 84.6,
+            "w": 35.6,
+            "d": 29.3,
+            "floors": 22,
+            "height": 77.4,
+            "rot": -0.087,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T7",
+            "x": 50.8,
+            "z": 76.2,
+            "w": 28.7,
+            "d": 24.4,
+            "floors": 25,
+            "height": 87.3,
+            "rot": -0.193,
+            "style": "mixed",
+            "crown": false
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Retail Boulevard",
+            "kind": "retail",
+            "blurb": "Ground-level convenience retail, cafe and pharmacy.",
+            "x": 111.3,
+            "z": 9.7
+          },
+          {
+            "name": "Grand Clubhouse",
+            "kind": "clubhouse",
+            "blurb": "A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.",
+            "x": 69.1,
+            "z": 134.2
+          },
+          {
+            "name": "Jogging Loop",
+            "kind": "run",
+            "blurb": "A 1.2 km rubberised loop with distance markers and hydration points.",
+            "x": -3.6,
+            "z": 116.6
+          },
+          {
+            "name": "Pet Park",
+            "kind": "pet",
+            "blurb": "Fenced off-leash run with agility features and a wash bay.",
+            "x": -159.9,
+            "z": 72.7
+          },
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": -176.7,
+            "z": -34.8
+          },
+          {
+            "name": "Central Green",
+            "kind": "park",
+            "blurb": "A three-acre landscaped spine connecting every tower lobby.",
+            "x": -86.2,
+            "z": -103.2
+          },
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": 6.8,
+            "z": -163.8
+          },
+          {
+            "name": "Amphitheatre",
+            "kind": "event",
+            "blurb": "Tiered seating for 300 with a stage for festivals and screenings.",
+            "x": 126,
+            "z": -65.4
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 10051974
+        }
+      }
+    },
+    {
+      "id": "dream-acres",
+      "name": "Dream Acres",
+      "developer": "Sobha Limited",
+      "city": "Bengaluru",
+      "locality": "Panathur",
+      "location": {
+        "lng": 77.6981,
+        "lat": 12.9285
+      },
+      "status": "Ready to Move",
+      "tagline": "Low-rise living around a five-acre forest court.",
+      "accent": "#2FBF9A",
+      "price": {
+        "from": 8200000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Handed over",
+        "landArea": "81 acres",
+        "towers": 8,
+        "units": 2900,
+        "floors": "G+19",
+        "openSpace": "82%",
+        "unitTypes": [
+          "1 BHK",
+          "2 BHK",
+          "3 BHK"
+        ],
+        "sizeRange": "645 - 1,510 sq.ft.",
+        "rera": "PRM/KA/RERA/1251/446/PR/171014/000321"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/dream-acres",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 679,
+          "d": 483,
+          "rot": -0.211
+        },
+        "podium": {
+          "w": 70.9,
+          "d": 59,
+          "height": 12.4
+        },
+        "water": {
+          "w": 77,
+          "d": 21.4,
+          "x": -29.6,
+          "z": 55.3
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -226.5,
+            "z": -97.2,
+            "w": 37.1,
+            "d": 27.5,
+            "floors": 15,
+            "height": 54.8,
+            "rot": -0.052,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T2",
+            "x": -73.5,
+            "z": -88.6,
+            "w": 31.6,
+            "d": 21.8,
+            "floors": 18,
+            "height": 66.8,
+            "rot": -0.116,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 81.7,
+            "z": -93.4,
+            "w": 30.8,
+            "d": 27.6,
+            "floors": 16,
+            "height": 62.4,
+            "rot": -0.131,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T4",
+            "x": 229.1,
+            "z": -99.1,
+            "w": 24.8,
+            "d": 21.4,
+            "floors": 15,
+            "height": 51.7,
+            "rot": 0.219,
+            "style": "mixed",
+            "crown": false
+          },
+          {
+            "id": "T5",
+            "x": -223.6,
+            "z": 85.5,
+            "w": 38,
+            "d": 20.3,
+            "floors": 16,
+            "height": 59.6,
+            "rot": 0.173,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T6",
+            "x": -81.4,
+            "z": 85.2,
+            "w": 32,
+            "d": 20.4,
+            "floors": 18,
+            "height": 65.6,
+            "rot": 0.06,
+            "style": "mixed",
+            "crown": false
+          },
+          {
+            "id": "T7",
+            "x": 79.1,
+            "z": 98.3,
+            "w": 29.4,
+            "d": 20.5,
+            "floors": 18,
+            "height": 65.9,
+            "rot": 0.095,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T8",
+            "x": 229.4,
+            "z": 89.4,
+            "w": 25.2,
+            "d": 22.5,
+            "floors": 18,
+            "height": 69.5,
+            "rot": 0.136,
+            "style": "stone",
+            "crown": true
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Jogging Loop",
+            "kind": "run",
+            "blurb": "A 1.2 km rubberised loop with distance markers and hydration points.",
+            "x": 169.5,
+            "z": 35.1
+          },
+          {
+            "name": "Grand Clubhouse",
+            "kind": "clubhouse",
+            "blurb": "A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.",
+            "x": 116.7,
+            "z": 136.6
+          },
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": -42.1,
+            "z": 113
+          },
+          {
+            "name": "Kids Play Zone",
+            "kind": "kids",
+            "blurb": "Soft-fall play equipment, splash pad and a shaded parents deck.",
+            "x": -205,
+            "z": 98.5
+          },
+          {
+            "name": "Tennis Court",
+            "kind": "sport",
+            "blurb": "Championship-surface court, floodlit for night play.",
+            "x": -145.1,
+            "z": -33.2
+          },
+          {
+            "name": "Retail Boulevard",
+            "kind": "retail",
+            "blurb": "Ground-level convenience retail, cafe and pharmacy.",
+            "x": -76.6,
+            "z": -97.4
+          },
+          {
+            "name": "Pet Park",
+            "kind": "pet",
+            "blurb": "Fenced off-leash run with agility features and a wash bay.",
+            "x": 28.7,
+            "z": -122
+          },
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": 235.3,
+            "z": -73
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 8187105
+        }
+      }
+    },
+    {
+      "id": "amara-heights",
+      "name": "Amara Heights",
+      "developer": "Lodha Group",
+      "city": "Mumbai",
+      "locality": "Thane West",
+      "location": {
+        "lng": 72.9781,
+        "lat": 19.2183
+      },
+      "status": "Under Construction",
+      "tagline": "Forty-four storeys looking straight down the Yeoor hills.",
+      "accent": "#FF8A4C",
+      "price": {
+        "from": 13400000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Jun 2028",
+        "landArea": "38 acres",
+        "towers": 6,
+        "units": 2100,
+        "floors": "G+44",
+        "openSpace": "70%",
+        "unitTypes": [
+          "2 BHK",
+          "3 BHK"
+        ],
+        "sizeRange": "890 - 1,740 sq.ft.",
+        "rera": "P51700018261"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/amara-heights",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 514,
+          "d": 299,
+          "rot": -0.241
+        },
+        "podium": {
+          "w": 91,
+          "d": 62.8,
+          "height": 13.3
+        },
+        "water": {
+          "w": 77.1,
+          "d": 19.5,
+          "x": -6.3,
+          "z": 37.9
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -143.5,
+            "z": -62.6,
+            "w": 37.3,
+            "d": 22,
+            "floors": 35,
+            "height": 124.9,
+            "rot": -0.087,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T2",
+            "x": -2.1,
+            "z": -60.3,
+            "w": 30.4,
+            "d": 20,
+            "floors": 32,
+            "height": 117.4,
+            "rot": -0.217,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 144.2,
+            "z": -60,
+            "w": 24.1,
+            "d": 26.7,
+            "floors": 42,
+            "height": 137.3,
+            "rot": 0.067,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T4",
+            "x": -143.2,
+            "z": 50.5,
+            "w": 31.9,
+            "d": 27,
+            "floors": 43,
+            "height": 148.8,
+            "rot": -0.124,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T5",
+            "x": -1.6,
+            "z": 52.4,
+            "w": 33.1,
+            "d": 28.8,
+            "floors": 33,
+            "height": 113.1,
+            "rot": 0.17,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T6",
+            "x": 142.3,
+            "z": 55.4,
+            "w": 31.3,
+            "d": 30,
+            "floors": 36,
+            "height": 132.7,
+            "rot": 0.171,
+            "style": "glass",
+            "crown": true
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Kids Play Zone",
+            "kind": "kids",
+            "blurb": "Soft-fall play equipment, splash pad and a shaded parents deck.",
+            "x": 119.6,
+            "z": 2.8
+          },
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": 51.6,
+            "z": 59.7
+          },
+          {
+            "name": "Grand Clubhouse",
+            "kind": "clubhouse",
+            "blurb": "A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.",
+            "x": -75.3,
+            "z": 104.9
+          },
+          {
+            "name": "Yoga Deck",
+            "kind": "wellness",
+            "blurb": "An elevated timber deck oriented east for sunrise sessions.",
+            "x": -176.3,
+            "z": 62.1
+          },
+          {
+            "name": "Fitness Centre",
+            "kind": "gym",
+            "blurb": "Fully equipped gym with a spinning studio and physio room.",
+            "x": -170.2,
+            "z": -27.2
+          },
+          {
+            "name": "Central Green",
+            "kind": "park",
+            "blurb": "A three-acre landscaped spine connecting every tower lobby.",
+            "x": -100.7,
+            "z": -99.6
+          },
+          {
+            "name": "Tennis Court",
+            "kind": "sport",
+            "blurb": "Championship-surface court, floodlit for night play.",
+            "x": 9.5,
+            "z": -70
+          },
+          {
+            "name": "Jogging Loop",
+            "kind": "run",
+            "blurb": "A 1.2 km rubberised loop with distance markers and hydration points.",
+            "x": 176,
+            "z": -47.1
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 4525220
+        }
+      }
+    },
+    {
+      "id": "sunrise-bay",
+      "name": "Sunrise Bay",
+      "developer": "Kalpataru",
+      "city": "Navi Mumbai",
+      "locality": "Ulwe",
+      "location": {
+        "lng": 73.0212,
+        "lat": 18.9903
+      },
+      "status": "New Launch",
+      "tagline": "Ten minutes from the new airport, facing the creek.",
+      "accent": "#FFC24B",
+      "price": {
+        "from": 11200000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Mar 2029",
+        "landArea": "24 acres",
+        "towers": 5,
+        "units": 1450,
+        "floors": "G+36",
+        "openSpace": "68%",
+        "unitTypes": [
+          "2 BHK",
+          "3 BHK",
+          "4 BHK"
+        ],
+        "sizeRange": "960 - 2,480 sq.ft.",
+        "rera": "P52000047812"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/sunrise-bay",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 355,
+          "d": 274,
+          "rot": 0.178
+        },
+        "podium": {
+          "w": 86.6,
+          "d": 70.5,
+          "height": 10.8
+        },
+        "water": {
+          "w": 73.6,
+          "d": 25.4,
+          "x": -3.6,
+          "z": 36.4
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -103.1,
+            "z": -49.2,
+            "w": 26.6,
+            "d": 26.5,
+            "floors": 35,
+            "height": 128.1,
+            "rot": -0.098,
+            "style": "stone",
+            "crown": true
+          },
+          {
+            "id": "T2",
+            "x": -7.8,
+            "z": -47.8,
+            "w": 25.2,
+            "d": 21.9,
+            "floors": 31,
+            "height": 109.7,
+            "rot": 0.03,
+            "style": "stone",
+            "crown": true
+          },
+          {
+            "id": "T3",
+            "x": 104.1,
+            "z": -47.7,
+            "w": 37.3,
+            "d": 22.8,
+            "floors": 33,
+            "height": 115.2,
+            "rot": 0.204,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T4",
+            "x": -98.6,
+            "z": 47.3,
+            "w": 34,
+            "d": 26.5,
+            "floors": 33,
+            "height": 115.1,
+            "rot": 0.145,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T5",
+            "x": -1.1,
+            "z": 56.1,
+            "w": 32.9,
+            "d": 23.6,
+            "floors": 29,
+            "height": 101,
+            "rot": 0.074,
+            "style": "glass",
+            "crown": false
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Grand Clubhouse",
+            "kind": "clubhouse",
+            "blurb": "A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.",
+            "x": 129.3,
+            "z": 27.9
+          },
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": 17.2,
+            "z": 77.5
+          },
+          {
+            "name": "Yoga Deck",
+            "kind": "wellness",
+            "blurb": "An elevated timber deck oriented east for sunrise sessions.",
+            "x": -66.1,
+            "z": 55.3
+          },
+          {
+            "name": "Fitness Centre",
+            "kind": "gym",
+            "blurb": "Fully equipped gym with a spinning studio and physio room.",
+            "x": -118.3,
+            "z": -19.7
+          },
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": -24.9,
+            "z": -63.8
+          },
+          {
+            "name": "Retail Boulevard",
+            "kind": "retail",
+            "blurb": "Ground-level convenience retail, cafe and pharmacy.",
+            "x": 52.7,
+            "z": -60.5
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 7040833
+        }
+      }
+    },
+    {
+      "id": "riverine-park",
+      "name": "Riverine Park",
+      "developer": "Godrej Properties",
+      "city": "Pune",
+      "locality": "Kharadi",
+      "location": {
+        "lng": 73.947,
+        "lat": 18.5515
+      },
+      "status": "Under Construction",
+      "tagline": "A riverside address with a 1.4 km promenade frontage.",
+      "accent": "#5AD1E8",
+      "price": {
+        "from": 10400000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Sep 2027",
+        "landArea": "33 acres",
+        "towers": 6,
+        "units": 1780,
+        "floors": "G+30",
+        "openSpace": "73%",
+        "unitTypes": [
+          "2 BHK",
+          "3 BHK"
+        ],
+        "sizeRange": "820 - 1,690 sq.ft.",
+        "rera": "P52100051204"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/riverine-park",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 453,
+          "d": 295,
+          "rot": 0.086
+        },
+        "podium": {
+          "w": 75.9,
+          "d": 49.8,
+          "height": 13.7
+        },
+        "water": {
+          "w": 79,
+          "d": 18.7,
+          "x": 5.2,
+          "z": 35
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -126.2,
+            "z": -62.3,
+            "w": 30,
+            "d": 21.5,
+            "floors": 29,
+            "height": 99.9,
+            "rot": -0.058,
+            "style": "stone",
+            "crown": true
+          },
+          {
+            "id": "T2",
+            "x": 7.7,
+            "z": -61.5,
+            "w": 25.7,
+            "d": 20.7,
+            "floors": 29,
+            "height": 102.3,
+            "rot": 0.059,
+            "style": "mixed",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 128.4,
+            "z": -51.5,
+            "w": 29.8,
+            "d": 25.3,
+            "floors": 29,
+            "height": 99.7,
+            "rot": -0.068,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T4",
+            "x": -130.4,
+            "z": 52.5,
+            "w": 36.4,
+            "d": 27.6,
+            "floors": 28,
+            "height": 98.7,
+            "rot": -0.054,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T5",
+            "x": 2.5,
+            "z": 56.6,
+            "w": 29.7,
+            "d": 23.8,
+            "floors": 30,
+            "height": 110.3,
+            "rot": -0.172,
+            "style": "mixed",
+            "crown": true
+          },
+          {
+            "id": "T6",
+            "x": 125.7,
+            "z": 51.6,
+            "w": 37.5,
+            "d": 21.9,
+            "floors": 29,
+            "height": 102.6,
+            "rot": -0.188,
+            "style": "stone",
+            "crown": true
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": 116.1,
+            "z": 0
+          },
+          {
+            "name": "Jogging Loop",
+            "kind": "run",
+            "blurb": "A 1.2 km rubberised loop with distance markers and hydration points.",
+            "x": 42.2,
+            "z": 82.3
+          },
+          {
+            "name": "Central Green",
+            "kind": "park",
+            "blurb": "A three-acre landscaped spine connecting every tower lobby.",
+            "x": -38.2,
+            "z": 106.2
+          },
+          {
+            "name": "Amphitheatre",
+            "kind": "event",
+            "blurb": "Tiered seating for 300 with a stage for festivals and screenings.",
+            "x": -125.9,
+            "z": 33.7
+          },
+          {
+            "name": "Pet Park",
+            "kind": "pet",
+            "blurb": "Fenced off-leash run with agility features and a wash bay.",
+            "x": -103.8,
+            "z": -66.3
+          },
+          {
+            "name": "Grand Clubhouse",
+            "kind": "clubhouse",
+            "blurb": "A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.",
+            "x": -13,
+            "z": -76.7
+          },
+          {
+            "name": "Tennis Court",
+            "kind": "sport",
+            "blurb": "Championship-surface court, floodlit for night play.",
+            "x": 141.2,
+            "z": -52.2
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 8118089
+        }
+      }
+    },
+    {
+      "id": "bhooja-one",
+      "name": "Bhooja One",
+      "developer": "My Home Constructions",
+      "city": "Hyderabad",
+      "locality": "Gachibowli",
+      "location": {
+        "lng": 78.3487,
+        "lat": 17.4239
+      },
+      "status": "Ready to Move",
+      "tagline": "Four glass towers over the financial district skyline.",
+      "accent": "#C77DFF",
+      "price": {
+        "from": 18600000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Handed over",
+        "landArea": "29 acres",
+        "towers": 4,
+        "units": 1120,
+        "floors": "G+42",
+        "openSpace": "65%",
+        "unitTypes": [
+          "3 BHK",
+          "4 BHK"
+        ],
+        "sizeRange": "2,120 - 4,050 sq.ft.",
+        "rera": "P02400002381"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/bhooja-one",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 458,
+          "d": 256,
+          "rot": 0.117
+        },
+        "podium": {
+          "w": 81.6,
+          "d": 78.3,
+          "height": 11.7
+        },
+        "water": {
+          "w": 69.9,
+          "d": 22.2,
+          "x": -6.8,
+          "z": 52.4
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -122.1,
+            "z": -51.7,
+            "w": 26.7,
+            "d": 29.8,
+            "floors": 37,
+            "height": 127.2,
+            "rot": -0.172,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T2",
+            "x": -3.1,
+            "z": -49.7,
+            "w": 25.1,
+            "d": 28.1,
+            "floors": 42,
+            "height": 145.1,
+            "rot": 0.113,
+            "style": "mixed",
+            "crown": true
+          },
+          {
+            "id": "T3",
+            "x": 132.1,
+            "z": -43.4,
+            "w": 24,
+            "d": 20.9,
+            "floors": 39,
+            "height": 134,
+            "rot": -0.074,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T4",
+            "x": -134.9,
+            "z": 42,
+            "w": 35.1,
+            "d": 29.8,
+            "floors": 40,
+            "height": 131.6,
+            "rot": 0.214,
+            "style": "mixed",
+            "crown": true
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Kids Play Zone",
+            "kind": "kids",
+            "blurb": "Soft-fall play equipment, splash pad and a shaded parents deck.",
+            "x": 177.8,
+            "z": 21.3
+          },
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": 65.5,
+            "z": 87.2
+          },
+          {
+            "name": "Central Green",
+            "kind": "park",
+            "blurb": "A three-acre landscaped spine connecting every tower lobby.",
+            "x": -86.6,
+            "z": 43.8
+          },
+          {
+            "name": "Fitness Centre",
+            "kind": "gym",
+            "blurb": "Fully equipped gym with a spinning studio and physio room.",
+            "x": -180.3,
+            "z": -20.6
+          },
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": -23.3,
+            "z": -72.2
+          },
+          {
+            "name": "Yoga Deck",
+            "kind": "wellness",
+            "blurb": "An elevated timber deck oriented east for sunrise sessions.",
+            "x": 67.9,
+            "z": -44.3
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 4028855
+        }
+      }
+    },
+    {
+      "id": "camellia-court",
+      "name": "Camellia Court",
+      "developer": "DLF",
+      "city": "Gurugram",
+      "locality": "Golf Course Road",
+      "location": {
+        "lng": 77.1011,
+        "lat": 28.4426
+      },
+      "status": "Ready to Move",
+      "tagline": "Four hundred residences on twenty acres of the Aravalli edge.",
+      "accent": "#E8C97D",
+      "price": {
+        "from": 78000000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Handed over",
+        "landArea": "20 acres",
+        "towers": 5,
+        "units": 429,
+        "floors": "G+38",
+        "openSpace": "78%",
+        "unitTypes": [
+          "4 BHK",
+          "5 BHK",
+          "Penthouse"
+        ],
+        "sizeRange": "7,300 - 16,300 sq.ft.",
+        "rera": "GGM/2018/324"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/camellia-court",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 332,
+          "d": 244,
+          "rot": -0.28
+        },
+        "podium": {
+          "w": 100,
+          "d": 50.2,
+          "height": 14.7
+        },
+        "water": {
+          "w": 49.9,
+          "d": 23.2,
+          "x": 29.9,
+          "z": 63.9
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -95.8,
+            "z": -44.4,
+            "w": 28.9,
+            "d": 20.9,
+            "floors": 31,
+            "height": 111.6,
+            "rot": 0.132,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T2",
+            "x": 1.7,
+            "z": -42.5,
+            "w": 31,
+            "d": 27,
+            "floors": 34,
+            "height": 122.3,
+            "rot": 0.125,
+            "style": "mixed",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 85.8,
+            "z": -49.9,
+            "w": 34.4,
+            "d": 26.3,
+            "floors": 33,
+            "height": 118.4,
+            "rot": 0.171,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T4",
+            "x": -98.4,
+            "z": 47.9,
+            "w": 25.4,
+            "d": 28.6,
+            "floors": 31,
+            "height": 106,
+            "rot": -0.194,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T5",
+            "x": 6.8,
+            "z": 52.4,
+            "w": 35.5,
+            "d": 28.2,
+            "floors": 34,
+            "height": 112.1,
+            "rot": 0.16,
+            "style": "mixed",
+            "crown": false
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Grand Clubhouse",
+            "kind": "clubhouse",
+            "blurb": "A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.",
+            "x": 96.8,
+            "z": 5
+          },
+          {
+            "name": "Retail Boulevard",
+            "kind": "retail",
+            "blurb": "Ground-level convenience retail, cafe and pharmacy.",
+            "x": 26.3,
+            "z": 53.2
+          },
+          {
+            "name": "Fitness Centre",
+            "kind": "gym",
+            "blurb": "Fully equipped gym with a spinning studio and physio room.",
+            "x": -61.2,
+            "z": 70.5
+          },
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": -94.3,
+            "z": -15.9
+          },
+          {
+            "name": "Pet Park",
+            "kind": "pet",
+            "blurb": "Fenced off-leash run with agility features and a wash bay.",
+            "x": -33.6,
+            "z": -56.1
+          },
+          {
+            "name": "Yoga Deck",
+            "kind": "wellness",
+            "blurb": "An elevated timber deck oriented east for sunrise sessions.",
+            "x": 69.2,
+            "z": -50.6
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 7353725
+        }
+      }
+    },
+    {
+      "id": "digi-quarter",
+      "name": "Digi Quarter",
+      "developer": "Emaar India",
+      "city": "Gurugram",
+      "locality": "Sector 62",
+      "location": {
+        "lng": 77.09,
+        "lat": 28.4088
+      },
+      "status": "Under Construction",
+      "tagline": "A digital-first workplace block with column-free floor plates.",
+      "accent": "#8FE388",
+      "price": {
+        "from": 24500000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Dec 2026",
+        "landArea": "12 acres",
+        "towers": 3,
+        "units": 460,
+        "floors": "G+32",
+        "openSpace": "62%",
+        "unitTypes": [
+          "Office Suite",
+          "Retail"
+        ],
+        "sizeRange": "1,050 - 8,900 sq.ft.",
+        "rera": "GGM/385/117/2019/62"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/digi-quarter",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 287,
+          "d": 169,
+          "rot": 0.17
+        },
+        "podium": {
+          "w": 66.3,
+          "d": 67.1,
+          "height": 11
+        },
+        "water": {
+          "w": 72.8,
+          "d": 18.4,
+          "x": -15.9,
+          "z": 44.8
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -87,
+            "z": -2.9,
+            "w": 31.7,
+            "d": 28.5,
+            "floors": 28,
+            "height": 95.7,
+            "rot": -0.129,
+            "style": "mixed",
+            "crown": false
+          },
+          {
+            "id": "T2",
+            "x": -6,
+            "z": 2.3,
+            "w": 37.6,
+            "d": 23.3,
+            "floors": 27,
+            "height": 92.7,
+            "rot": -0.091,
+            "style": "mixed",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 81.6,
+            "z": 6.6,
+            "w": 29.1,
+            "d": 28.1,
+            "floors": 29,
+            "height": 107.3,
+            "rot": 0.156,
+            "style": "stone",
+            "crown": false
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Retail Boulevard",
+            "kind": "retail",
+            "blurb": "Ground-level convenience retail, cafe and pharmacy.",
+            "x": 107.3,
+            "z": 1.7
+          },
+          {
+            "name": "Tennis Court",
+            "kind": "sport",
+            "blurb": "Championship-surface court, floodlit for night play.",
+            "x": 15.1,
+            "z": 42.1
+          },
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": -67.1,
+            "z": 31.9
+          },
+          {
+            "name": "Cricket Nets",
+            "kind": "sport",
+            "blurb": "Two turf practice nets with a bowling machine bay.",
+            "x": -115.2,
+            "z": -19.7
+          },
+          {
+            "name": "Grand Clubhouse",
+            "kind": "clubhouse",
+            "blurb": "A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.",
+            "x": -50.6,
+            "z": -55.9
+          },
+          {
+            "name": "Yoga Deck",
+            "kind": "wellness",
+            "blurb": "An elevated timber deck oriented east for sunrise sessions.",
+            "x": 35.3,
+            "z": -35.7
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 8655245
+        }
+      }
+    },
+    {
+      "id": "shantigram-vista",
+      "name": "Shantigram Vista",
+      "developer": "Adani Realty",
+      "city": "Ahmedabad",
+      "locality": "S.G. Highway",
+      "location": {
+        "lng": 72.5205,
+        "lat": 23.1104
+      },
+      "status": "New Launch",
+      "tagline": "The newest low-rise precinct of a six-hundred-acre township.",
+      "accent": "#FF6B8A",
+      "price": {
+        "from": 7600000,
+        "currency": "INR"
+      },
+      "facts": {
+        "possession": "Jun 2029",
+        "landArea": "64 acres",
+        "towers": 8,
+        "units": 2200,
+        "floors": "G+17",
+        "openSpace": "85%",
+        "unitTypes": [
+          "2 BHK",
+          "3 BHK",
+          "Villa"
+        ],
+        "sizeRange": "1,100 - 3,900 sq.ft.",
+        "rera": "PR/GJ/AHMEDABAD/AUDA/RAA08812"
+      },
+      "immersive": {
+        "available": true,
+        "url": "unreal://launch/shantigram-vista",
+        "pixelStream": null
+      },
+      "plan": {
+        "site": {
+          "w": 578,
+          "d": 448,
+          "rot": 0.333
+        },
+        "podium": {
+          "w": 94.4,
+          "d": 75,
+          "height": 9.6
+        },
+        "water": {
+          "w": 79.1,
+          "d": 19.6,
+          "x": -3.5,
+          "z": 25.6
+        },
+        "towers": [
+          {
+            "id": "T1",
+            "x": -188.9,
+            "z": -81.3,
+            "w": 26.2,
+            "d": 29.6,
+            "floors": 14,
+            "height": 53.2,
+            "rot": -0.219,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T2",
+            "x": -70.6,
+            "z": -81.5,
+            "w": 35.4,
+            "d": 29.7,
+            "floors": 16,
+            "height": 53.8,
+            "rot": 0.177,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T3",
+            "x": 58.3,
+            "z": -85.2,
+            "w": 37.5,
+            "d": 27.6,
+            "floors": 12,
+            "height": 45.9,
+            "rot": -0.163,
+            "style": "glass",
+            "crown": true
+          },
+          {
+            "id": "T4",
+            "x": 181.2,
+            "z": -92.6,
+            "w": 34.1,
+            "d": 29.7,
+            "floors": 15,
+            "height": 55.8,
+            "rot": 0.07,
+            "style": "glass",
+            "crown": false
+          },
+          {
+            "id": "T5",
+            "x": -182.7,
+            "z": 79.1,
+            "w": 37.3,
+            "d": 27.4,
+            "floors": 15,
+            "height": 52.3,
+            "rot": -0.08,
+            "style": "stone",
+            "crown": false
+          },
+          {
+            "id": "T6",
+            "x": -64.7,
+            "z": 90.5,
+            "w": 31.3,
+            "d": 20.6,
+            "floors": 15,
+            "height": 57.7,
+            "rot": 0.148,
+            "style": "stone",
+            "crown": true
+          },
+          {
+            "id": "T7",
+            "x": 55.6,
+            "z": 89.8,
+            "w": 29.2,
+            "d": 26.4,
+            "floors": 13,
+            "height": 48.1,
+            "rot": -0.178,
+            "style": "mixed",
+            "crown": true
+          },
+          {
+            "id": "T8",
+            "x": 187.2,
+            "z": 87.2,
+            "w": 37.3,
+            "d": 27.2,
+            "floors": 16,
+            "height": 56.5,
+            "rot": 0.093,
+            "style": "mixed",
+            "crown": true
+          }
+        ],
+        "amenities": [
+          {
+            "name": "Olympic Pool",
+            "kind": "pool",
+            "blurb": "Temperature-controlled 25m lap pool with a separate toddler pool and deck.",
+            "x": 145.2,
+            "z": 33.1
+          },
+          {
+            "name": "Retail Boulevard",
+            "kind": "retail",
+            "blurb": "Ground-level convenience retail, cafe and pharmacy.",
+            "x": 140.2,
+            "z": 117.6
+          },
+          {
+            "name": "Fitness Centre",
+            "kind": "gym",
+            "blurb": "Fully equipped gym with a spinning studio and physio room.",
+            "x": -73.1,
+            "z": 144.3
+          },
+          {
+            "name": "Pet Park",
+            "kind": "pet",
+            "blurb": "Fenced off-leash run with agility features and a wash bay.",
+            "x": -107.1,
+            "z": 54.9
+          },
+          {
+            "name": "Tennis Court",
+            "kind": "sport",
+            "blurb": "Championship-surface court, floodlit for night play.",
+            "x": -211.4,
+            "z": -2.6
+          },
+          {
+            "name": "Jogging Loop",
+            "kind": "run",
+            "blurb": "A 1.2 km rubberised loop with distance markers and hydration points.",
+            "x": -97.5,
+            "z": -96.9
+          },
+          {
+            "name": "Yoga Deck",
+            "kind": "wellness",
+            "blurb": "An elevated timber deck oriented east for sunrise sessions.",
+            "x": 90.2,
+            "z": -165.8
+          },
+          {
+            "name": "Kids Play Zone",
+            "kind": "kids",
+            "blurb": "Soft-fall play equipment, splash pad and a shaded parents deck.",
+            "x": 169.8,
+            "z": -93.2
+          }
+        ],
+        "asset": {
+          "format": "glb",
+          "url": null,
+          "bytes": 4344875
+        }
+      }
+    }
+  ]
+}
