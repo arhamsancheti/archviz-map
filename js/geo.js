@@ -113,10 +113,41 @@ const pointInRing = (x, y, ring) => {
   return inside;
 };
 
+/** Do segments p1-p2 and p3-p4 cross? Orientation test, collinear cases included. */
+const segmentsCross = (p1, p2, p3, p4) => {
+  const dir = (a, b, c) => Math.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
+  const on = (a, b, c) =>
+    Math.min(a[0], b[0]) <= c[0] && c[0] <= Math.max(a[0], b[0]) &&
+    Math.min(a[1], b[1]) <= c[1] && c[1] <= Math.max(a[1], b[1]);
+  const d1 = dir(p3, p4, p1);
+  const d2 = dir(p3, p4, p2);
+  const d3 = dir(p1, p2, p3);
+  const d4 = dir(p1, p2, p4);
+  if (d1 !== d2 && d3 !== d4) return true;
+  return (
+    (d1 === 0 && on(p3, p4, p1)) || (d2 === 0 && on(p3, p4, p2)) ||
+    (d3 === 0 && on(p1, p2, p3)) || (d4 === 0 && on(p1, p2, p4))
+  );
+};
+
+/** Any edge of `a` crossing any edge of `b`. Both rings are small, so this is cheap. */
+const ringsCross = (a, b) => {
+  for (let i = 0, j = a.length - 1; i < a.length; j = i++) {
+    for (let k = 0, l = b.length - 1; k < b.length; l = k++) {
+      if (segmentsCross(a[j], a[i], b[l], b[k])) return true;
+    }
+  }
+  return false;
+};
+
 /**
  * Whether a tile feature's geometry touches any site. A cheap bbox reject first,
- * then two containment tests so a building straddling the boundary is caught too
- * (either of its vertices inside the site, or a site vertex inside the building).
+ * then containment both ways (a building vertex inside the site, or a site vertex
+ * inside the building), and finally an edge-crossing test.
+ *
+ * The edge test is not redundant: two rectangles can overlap in a cross shape with
+ * no vertex of either inside the other, and a long building clipping a site corner
+ * hits exactly that case. Containment alone would miss it.
  */
 export function hitsAnySite(geometry, boxes) {
   const polys =
@@ -136,6 +167,7 @@ export function hitsAnySite(geometry, boxes) {
       if (hx < box.bbox[0] || hy < box.bbox[1] || lx > box.bbox[2] || ly > box.bbox[3]) continue;
       if (ring.some(([x, y]) => pointInRing(x, y, box.ring))) return true;
       if (box.ring.some(([x, y]) => pointInRing(x, y, ring))) return true;
+      if (ringsCross(ring, box.ring)) return true;
     }
   }
   return false;
