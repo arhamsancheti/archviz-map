@@ -379,6 +379,48 @@ across separate tool calls instead of sleeping inside one. Headless Chrome works
 for this app with `--enable-unsafe-swiftshader` and the backgrounding flags off;
 `window.__app` gives every probe its camera and registry handles.
 
+## Round 6 (2026-08-29) - review findings from round 5
+
+A read-through of round 5 (which was itself excellent - it caught two bad
+verifications of mine: my `within` cutout excluded nothing, and my "framing is fine"
+check had only measured the x axis). Four things came out of it.
+
+- [x] 33. **Terrain was not re-applied after a basemap switch.** `terrainMeshOn` is
+      module state and `syncTerrain` early-returns on `want === terrainMeshOn`. A style
+      swap builds a fresh style and imperatively-set terrain does not survive it, so
+      the flag read "on" while the map had none, and the mesh stayed gone until the
+      zoom threshold was crossed twice. `applyWorld` now clears the flag first.
+      **Not confirmed at runtime.** Three attempts at a live style switch stalled: the
+      browser tab kept going hidden, and Chrome pauses rendering and tile loading
+      there, so `style.load` never fired. The fix is safe either way (if terrain does
+      survive a swap, re-applying passes identical params and is a no-op), but the
+      premise deserves ten seconds in a visible window.
+- [x] 34. **The cutout scan ran when nothing needed cutting.** `refreshBuildingCutout`
+      fired on idle and throttled `sourcedata` at any zoom past ~13.8 and walked every
+      building in every loaded tile - thousands of feature objects allocated
+      repeatedly while tiles stream - even with no project near the screen. It now
+      bails unless a project is in view, reusing the streaming manager's screen-space
+      test. Site outlines are built once rather than per call. Matters because phones
+      are the target.
+- [x] 35. **Overlap test missed crossing shapes.** Containment both ways misses two
+      rectangles overlapping in a cross with no vertex of either inside the other -
+      a long building clipping a site corner. Added an edge-crossing test, and
+      `tools/test-geo.mjs` to cover it. Confirmed the case genuinely regressed
+      before: the old code returns false for a crossing bar, the new one true.
+- [x] 36. **Camera flight state has one owner now.** `cameraFlight` and `flightSeq`
+      were written from seven places; they now move only through `beginFlight`,
+      `cancelPendingFlight` and `flightSuperseded`, with the invariants written on the
+      declaration. No behaviour change. This is the most intricate code in the app -
+      two-phase flights, gesture disarming and terrain all interacting - so the next
+      subtle bug will live here.
+
+**Handoff warning, learned the hard way:** the worktree at
+`.claude/worktrees/terrain-3d-world` had stale working files after round 5 was merged -
+its branch label pointed at the merged commit while `js/app.js` on disk was still the
+pre-merge copy, so git reported it as a 131-line "modification" that would have
+reverted round 5 wholesale. Check `git diff --stat HEAD` in a worktree before editing
+it if someone else has moved the branch.
+
 ## Decisions made
 
 - **MapLibre, not Cesium/Google Photorealistic Tiles.** No API key, no per-load billing,
