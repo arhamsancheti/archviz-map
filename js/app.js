@@ -241,8 +241,16 @@ function buildingSourceId() {
  * Apple and Google Maps show it. Re-applied after every style swap, like everything
  * else we own.
  */
+/** Whether the DEM mesh is currently applied. Owned by syncTerrain. */
+let terrainMeshOn = false;
+
 function applyWorld() {
   const cfg = BASEMAPS[state.basemap];
+  // A style swap builds a fresh style, and terrain set imperatively does not survive
+  // it. Clear the cached flag so the syncTerrain below actually re-applies the mesh:
+  // otherwise it sees "already on", returns early, and the mesh stays gone until the
+  // zoom threshold happens to be crossed twice.
+  terrainMeshOn = false;
   try {
     map.setSky({
       'sky-color': cfg.sky.top,
@@ -290,7 +298,6 @@ function applyWorld() {
  * landscape. Runs on moveend - never mid-animation, which upstream handles badly.
  * Hysteresis stops it flapping while a wheel zoom hovers around the threshold.
  */
-let terrainMeshOn = false;
 function syncTerrain() {
   if (!state.world3d) {
     terrainMeshOn = false;
@@ -384,9 +391,19 @@ function applyCityBuildings() {
 const cutoutIds = new Set();
 let cutoutApplied = false;
 
+/** Sites never move, so the padded outlines are built once. */
+let siteBoxCache = null;
+const getSiteBoxes = () => (siteBoxCache ||= siteBoxes(state.projects, 12));
+
 function refreshBuildingCutout() {
   if (!map || !map.getLayer('city-buildings')) return;
   if (map.getZoom() < WORLD.buildingsMinZoom - 0.6) return;
+  // Nothing can need cutting unless a project is actually in view. Without this the
+  // scan walks every building in every loaded tile - thousands of feature objects,
+  // repeatedly, while tiles stream - during any pan at street zoom with no project
+  // near. Reuses the streaming manager's screen-space test, which already handles
+  // pitch and globe occlusion.
+  if (streaming && streaming.visibleIds.length === 0) return;
   const source = buildingSourceId();
   if (!source) return;
 
@@ -396,7 +413,7 @@ function refreshBuildingCutout() {
   } catch {
     return;
   }
-  const boxes = siteBoxes(state.projects, 12);
+  const boxes = getSiteBoxes();
   let grew = false;
   for (const f of features) {
     if (f.id === undefined || f.id === null || cutoutIds.has(f.id)) continue;
@@ -482,8 +499,40 @@ function applyFilter() {
 /* ---------------------------------------------------------------- camera */
 
 const NO_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
-let cameraFlight = false; // a programmatic flight is in progress; leave it alone
-let flightSeq = 0; // bumped on every new camera intent, so superseded flights stand down
+/**
+ * Camera flight bookkeeping.
+ *
+ * Two pieces of state that must always move together, which is why nothing outside
+ * these three helpers touches them:
+ *
+ *  - `cameraFlight` marks the next `moveend` as ours, so `levelOutWhenZoomedOut` does
+ *    not fight an animation we started. The first moveend that sees it consumes it.
+ *  - `flightSeq` is the current camera intent. Anything that runs *after* an
+ *    animation captures the sequence first and stands down if it changed - that is
+ *    what stops a superseded second-phase flight from yanking the user back.
+ *
+ * Invariants: every programmatic camera move goes through `beginFlight()`; anything
+ * that invalidates a pending one calls `cancelPendingFlight()`; deferred work checks
+ * `flightSuperseded(seq)` before acting.
+ */
+let cameraFlight = false;
+let flightSeq = 0;
+
+/** Start a programmatic camera move. Returns the sequence to check later. */
+function beginFlight() {
+  cameraFlight = true;
+  return ++flightSeq;
+}
+
+/** Invalidate any pending deferred flight work without starting a move. */
+function cancelPendingFlight() {
+  flightSeq++;
+}
+
+/** Has a newer camera intent replaced the one that captured `seq`? */
+function flightSuperseded(seq) {
+  return seq !== flightSeq;
+}
 
 /**
  * Zooming out from a project leaves the camera tilted and still padded for the
@@ -525,8 +574,7 @@ function onUserGesture(fn) {
 }
 
 function flyToProject(p, wide) {
-  const seq = ++flightSeq;
-  cameraFlight = true;
+  const seq = beginFlight();
   const target = {
     center: [p.location.lng, p.location.lat],
     zoom: CAMERA.project.zoom,
@@ -544,7 +592,7 @@ function flyToProject(p, wide) {
   // asking getTerrain() here would read false on the globe even though the target
   // stands on terrain.
   if (state.world3d && !demKnown) {
-    const disarm = onUserGesture(() => { flightSeq++; });
+    const disarm = onUserGesture(cancelPendingFlight);
     map.flyTo({
       ...target,
       zoom: CAMERA.approach.zoom,
@@ -556,8 +604,8 @@ function flyToProject(p, wide) {
     });
     map.once('moveend', () => {
       disarm();
-      if (seq !== flightSeq || state.selectedId !== p.id) return;
-      cameraFlight = true;
+      if (flightSuperseded(seq) || state.selectedId !== p.id) return;
+      beginFlight();
       map.flyTo({ ...target, duration: CAMERA.project.duration, essential: true, freezeElevation: true, padding: pad });
     });
   } else {
@@ -588,14 +636,14 @@ function selectProject(id) {
 function closeProject() {
   if (!state.selectedId) return;
   state.selectedId = null;
-  flightSeq++;
+  cancelPendingFlight();
   streaming.select(null);
   stopOrbit();
   UI.closeDetail();
   markers.clearAmenities();
   const pad = map.getPadding();
   if (pad.left || pad.right || pad.top || pad.bottom) {
-    cameraFlight = true;
+    beginFlight();
     map.easeTo({ padding: NO_PADDING, duration: 500, essential: true, freezeElevation: true });
   }
   UI.renderCards(state.filtered, null, selectProject);
@@ -612,8 +660,7 @@ function flyToAmenity(project, amenity) {
   const x = amenity.x * Math.cos(rot) - amenity.z * Math.sin(rot);
   const z = amenity.x * Math.sin(rot) + amenity.z * Math.cos(rot);
   stopOrbit();
-  flightSeq++;
-  cameraFlight = true;
+  beginFlight();
   map.flyTo({
     center: offsetLngLat(project.location, x, z),
     zoom: CAMERA.amenity.zoom,
@@ -626,8 +673,7 @@ function flyToAmenity(project, amenity) {
 }
 
 function zoomToCluster(center, members) {
-  flightSeq++;
-  cameraFlight = true;
+  beginFlight();
   map.flyTo({ center, zoom: Math.min(map.getZoom() + 2.6, 15), duration: 900, essential: true, freezeElevation: true });
 }
 
@@ -647,8 +693,7 @@ async function share(p) {
 
 function resetView() {
   closeProject();
-  flightSeq++;
-  cameraFlight = true;
+  beginFlight();
   map.flyTo({ ...CAMERA.overview, duration: 2000, essential: true, padding: NO_PADDING, freezeElevation: true });
 }
 
