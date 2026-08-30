@@ -61,10 +61,10 @@ async function boot() {
 
   let moveTimer = null;
   map.on('move', () => {
-    markers.update(state.filtered, state.selectedId);
     if (moveTimer) return;
     moveTimer = setTimeout(() => {
       moveTimer = null;
+      markers.update(state.filtered, state.selectedId);
       streaming.update();
     }, 160);
   });
@@ -72,6 +72,7 @@ async function boot() {
     syncTerrain();
     scene.updateAltitudes();
     streaming.update();
+    markers.update(state.filtered, state.selectedId);
     syncAmenities();
     levelOutWhenZoomedOut();
   });
@@ -464,12 +465,27 @@ function buildChrome() {
     if (e.key === 'Enter' && state.filtered.length) selectProject(state.filtered[0].id);
   });
 
-  $('#sidebar-toggle').onclick = () => $('#sidebar').classList.toggle('collapsed');
+  $('#sidebar-toggle').onclick = () => {
+    $('#sidebar').classList.toggle('collapsed');
+    syncSheetClass();
+  };
+  $('#btn-projects').onclick = () => {
+    $('#sidebar').classList.remove('collapsed');
+    syncSheetClass();
+  };
   $('#hud-toggle').onclick = () => $('#hud').classList.toggle('closed');
   $('#btn-orbit').onclick = toggleOrbit;
   $('#btn-globe').onclick = toggleGlobe;
   $('#btn-3d').onclick = toggleWorld3d;
   $('#btn-reset').onclick = resetView;
+
+  // Phones open on the map, not on the sheets: the list and the streaming HUD are
+  // both one tap away, and a fully open HUD ate a quarter of a phone screen.
+  if (PERF.mobile) {
+    $('#sidebar').classList.add('collapsed');
+    $('#hud').classList.add('closed');
+  }
+  syncSheetClass();
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeProject();
@@ -478,6 +494,11 @@ function buildChrome() {
       $('#search').focus();
     }
   });
+}
+
+/** Let the CSS know when the project sheet covers the bottom of a phone. */
+function syncSheetClass() {
+  document.body.classList.toggle('sidebar-open', !$('#sidebar').classList.contains('collapsed'));
 }
 
 function applyFilter() {
@@ -573,6 +594,13 @@ function onUserGesture(fn) {
   return off;
 }
 
+/**
+ * On a phone the detail sheet covers the lower half, so the subject has to land in
+ * the strip of map left visible above it - without padding it would sit dead centre,
+ * behind the sheet. The top padding keeps it clear of the two-row top bar.
+ */
+const phonePad = () => ({ top: 90, bottom: Math.round(innerHeight * 0.46), left: 0, right: 0 });
+
 function flyToProject(p, wide) {
   const seq = beginFlight();
   const target = {
@@ -581,7 +609,7 @@ function flyToProject(p, wide) {
     pitch: CAMERA.project.pitch,
     bearing: (p.plan.site.rot * 180) / Math.PI + 28,
   };
-  const pad = wide ? { right: 400, left: 350, top: 0, bottom: 0 } : NO_PADDING;
+  const pad = wide ? { right: 400, left: 350, top: 0, bottom: 0 } : phonePad();
 
   let demKnown = false;
   try {
@@ -620,6 +648,13 @@ function selectProject(id) {
   if (!p) return;
   state.selectedId = id;
   streaming.select(id);
+
+  // on a phone the list is a sheet over the map - selecting from it must get it
+  // out of the way so the flight and the detail sheet have the screen
+  if (PERF.mobile && !$('#sidebar').classList.contains('collapsed')) {
+    $('#sidebar').classList.add('collapsed');
+    syncSheetClass();
+  }
 
   flyToProject(p, window.innerWidth > 860);
 
@@ -661,14 +696,16 @@ function flyToAmenity(project, amenity) {
   const z = amenity.x * Math.sin(rot) + amenity.z * Math.cos(rot);
   stopOrbit();
   beginFlight();
-  map.flyTo({
+  const opts = {
     center: offsetLngLat(project.location, x, z),
     zoom: CAMERA.amenity.zoom,
     pitch: CAMERA.amenity.pitch,
     duration: CAMERA.amenity.duration,
     essential: true,
     freezeElevation: true,
-  });
+  };
+  if (window.innerWidth <= 860) opts.padding = phonePad();
+  map.flyTo(opts);
   UI.toast(amenity.name + ' - ' + amenity.blurb);
 }
 

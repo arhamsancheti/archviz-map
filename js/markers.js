@@ -66,20 +66,31 @@ export class MarkerLayer {
         el.className = 'pin-label';
         marker = new maplibregl.Marker({ element: el, anchor: 'bottom' });
         marker.setLngLat([lng, lat]).addTo(this.map);
+        marker._sig = null;
         this.pool.set(key, marker);
       } else {
         marker.setLngLat([lng, lat]);
       }
 
-      const el = marker.getElement();
-      if (members.length > 1) {
-        el.innerHTML = `<i style="background:${members[0].accent}"></i>${members.length} projects`;
-        el.onclick = () => this.onCluster([lng, lat], members);
-      } else {
-        const p = members[0];
-        el.innerHTML = `<i style="background:${p.accent}"></i>${p.name}`;
-        el.style.outline = p.id === selectedId ? '2px solid ' + p.accent : '';
-        el.onclick = () => this.onSelect(p.id);
+      // Position updates every frame; the DOM content may not. innerHTML on ten
+      // markers at 60fps parses and allocates for nothing, which phones notice -
+      // rewrite only when the label's meaning actually changed.
+      const sig =
+        members.length > 1
+          ? 'c' + members.map((p) => p.id).join()
+          : 'p' + members[0].id + (members[0].id === selectedId ? '*' : '');
+      if (marker._sig !== sig) {
+        marker._sig = sig;
+        const el = marker.getElement();
+        if (members.length > 1) {
+          el.innerHTML = `<i style="background:${members[0].accent}"></i>${members.length} projects`;
+          el.onclick = () => this.onCluster([lng, lat], members);
+        } else {
+          const p = members[0];
+          el.innerHTML = `<i style="background:${p.accent}"></i>${p.name}`;
+          el.style.outline = p.id === selectedId ? '2px solid ' + p.accent : '';
+          el.onclick = () => this.onSelect(p.id);
+        }
       }
     }
 

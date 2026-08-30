@@ -223,6 +223,16 @@ export class StreamingManager {
     const sites = this.map.getSource('sites');
     if (!massing || !sites) return;
 
+    // setData is a worker round-trip each, and this runs on every throttled move.
+    // Both sources only change when the visible set or the resident set does, so a
+    // signature check turns panning at a steady zoom into a no-op.
+    const sig =
+      (zoom >= LOD.massingMinZoom ? 's' : 'n') +
+      '|' + visible.map((p) => p?.id).join() +
+      '|' + [...this.scene.entries.keys()].join();
+    if (sig === this.massingSig) return;
+    this.massingSig = sig;
+
     const show = zoom >= LOD.massingMinZoom;
     const feats = [];
     const siteFeats = [];

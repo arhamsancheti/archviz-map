@@ -421,6 +421,63 @@ pre-merge copy, so git reported it as a 131-line "modification" that would have
 reverted round 5 wholesale. Check `git diff --stat HEAD` in a worktree before editing
 it if someone else has moved the branch.
 
+## Round 7 (2026-08-29) - the phone pass
+
+Naman: optimise, and check how it actually behaves on a phone. Measured in headless
+Chrome emulating one - 390x844, DPR 2, touch, 4x CPU throttle, Fast 3G - with the
+caveat that SwiftShader renders GL on the CPU, so absolute frame times are noise
+there; main-thread long tasks are the honest signal. Screenshots judged by eye.
+
+### What the phone looked like before
+
+- The globe opened buried: the streaming HUD fully expanded ate a quarter of the
+  screen, the project sheet another 44vh. A thin strip of map in between.
+- Selecting a project covered **100% of the map** - the detail sheet was 74vh and
+  the phone flight applied no padding, so the model you just streamed landed dead
+  centre behind the sheet. The product's whole point was invisible on the target
+  device.
+- MapLibre's zoom/compass control and the attribution sat behind the bottom sheet
+  (hidden, and the attribution should not be).
+- `markers.update` re-projected all ten pins and rewrote their `innerHTML` on every
+  move frame: ~100 ms per 1.4 s pan at 4x CPU.
+
+### What changed
+
+Layout: on phones the list and the HUD start tucked away (one tap each - a new
+floating handle brings the list back, stacked above the streaming pill it used to
+hide under); the detail sheet is 52vh instead of 74vh; the flight pads the subject
+into the strip of map left visible (`phonePad`, also used by amenity flights);
+MapLibre's controls move under the top bar where the sheets cannot reach them;
+`dvh` with a `vh` fallback so the URL bar does not break the sheets; safe-area
+insets on the sheets and handle; lighter backdrop blur on phones (one of the few
+GPU costs the sheets add while the map moves under them). Selecting from the list
+collapses it. Desktop is untouched - every one of these lives in the `max-width:
+860px` block or behind `PERF.mobile`.
+
+Main thread: `markers.update` moved to the 160 ms move throttle plus an exact pass
+on moveend - MapLibre markers reposition themselves every render frame, so the
+per-frame call only duplicated that to re-decide cluster grouping, which changes
+slowly; labels also only rewrite when their meaning changed (id set or selection).
+`refreshMassing` skips its two `setData` worker round-trips unless the visible or
+resident set changed. The three.js pass skips models whose site is under 24 px on
+screen - a full draw plus a shadow pass for something invisible, exactly the
+situation during a zoomed-out approach.
+
+### Measured after
+
+- markers cost per pan: 100 ms -> 45 ms at 4x CPU (still the top handler; the rest
+  is MapLibre's own per-frame work).
+- Long tasks selecting a project: 9 -> 1. Panning at a project: 16 -> 5 (the rest
+  is SwiftShader's software rendering, hardware on a phone).
+- Landing on desktop still (975, 600), cutout still 0/81, sidebar/detail states
+  unchanged at desktop width.
+- Screenshots: overview shows the globe full-screen with the tools; the selected
+  view shows the model, its label and its amenities above the sheet.
+
+Phone absolutes (cold boot ~4.9 s to interactive under throttle + Fast 3G) are the
+emulator's floor, not a device measurement - a real mid-range phone deserves one
+look with `chrome://inspect` before the demo.
+
 ## Decisions made
 
 - **MapLibre, not Cesium/Google Photorealistic Tiles.** No API key, no per-load billing,

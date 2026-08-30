@@ -16,7 +16,7 @@
  * drawn - no per-project light bookkeeping.
  */
 import * as THREE from 'three';
-import { sampleGround } from './geo.js';
+import { offsetLngLat, sampleGround } from './geo.js';
 import { PERF } from './config.js';
 
 /**
@@ -102,6 +102,14 @@ export class SceneManager {
 
         // Draw one project at a time, each in its own local frame.
         for (const entry of self.entries.values()) {
+          // A model whose whole site is a few pixels across still costs a full draw
+          // plus its shadow pass - the exact situation during a zoomed-out approach,
+          // and the reason phones drop frames mid-flight. Below ~24 px, skip.
+          if (entry.radiusM > 0) {
+            const a = self.map.project([entry.lngLat.lng, entry.lngLat.lat]);
+            const b = self.map.project(offsetLngLat(entry.lngLat, entry.radiusM, 0));
+            if (Math.hypot(b.x - a.x, b.y - a.y) < 24) continue;
+          }
           const world = self.modelMatrix(entry.lngLat, entry.altitude || 0);
           if (!world) continue;
           self.camera.projectionMatrix = SCRATCH_MAIN.fromArray(main).multiply(world);

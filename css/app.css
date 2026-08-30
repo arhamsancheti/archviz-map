@@ -257,6 +257,15 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .map-tools { position: absolute; z-index: 6; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 7px; }
 .detail.open ~ .map-tools { transform: translateX(-396px); }
 .map-tools { transition: transform .34s cubic-bezier(.4,0,.2,1); }
+
+/* Floating handle that brings the project list back on a phone. */
+.fab {
+  display: none; z-index: 5;
+  position: absolute; left: 14px; bottom: 14px;
+  width: 44px; height: 44px; border-radius: 14px; place-items: center;
+  background: var(--surface); backdrop-filter: blur(18px);
+  border: 1px solid var(--border); box-shadow: var(--shadow); color: var(--text);
+}
 .tool {
   width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
   background: var(--surface); backdrop-filter: blur(18px);
@@ -319,10 +328,41 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .topbar { flex-wrap: wrap; gap: 8px; }
   .brand-sub { display: none; }
   .search { order: 3; flex-basis: 100%; }
-  .sidebar { top: auto; bottom: 0; left: 0; right: 0; width: auto; height: 44vh; border-radius: 18px 18px 0 0; }
-  .sidebar:not(.collapsed) ~ .hud { transform: none; }
-  .hud { bottom: calc(44vh + 10px); width: 210px; }
-  .detail { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 74vh; border-radius: 18px 18px 0 0; transform: translateY(calc(100% + 20px)); }
+  /* dvh tracks the URL bar on real phones; the vh line is the fallback. */
+  .sidebar {
+    top: auto; bottom: 0; left: 0; right: 0; width: auto; height: 44vh; height: 44dvh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* The map is the product: the list starts tucked away and the sheets only ever
+     cover their own half. */
+  .sidebar:not(.collapsed) ~ .hud { opacity: 0; pointer-events: none; }
+  .hud {
+    bottom: calc(14px + env(safe-area-inset-bottom)); width: 200px;
+  }
+  body.sidebar-open .hud { bottom: calc(44vh + 12px); bottom: calc(44dvh + 12px); }
+  .detail {
+    top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 52vh; height: 52dvh;
+    border-radius: 18px 18px 0 0; transform: translateY(calc(100% + 20px));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
   .detail.open ~ .map-tools { transform: none; }
-  .map-tools { bottom: calc(44vh + 10px); }
+  .map-tools { bottom: calc(14px + env(safe-area-inset-bottom)); }
+  body.sidebar-open .map-tools { bottom: calc(44vh + 12px); bottom: calc(44dvh + 12px); }
+  /* The project-list handle only exists while the list is hidden, stacked above
+     the streaming pill it shares the corner with. */
+  .sidebar.collapsed ~ .fab {
+    display: grid;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+  /* MapLibre's zoom/compass and the attribution sit behind the bottom sheets, so
+     they live under the top bar on a phone - always reachable, always visible. */
+  .maplibregl-ctrl-bottom-right { top: 148px; right: 10px; bottom: auto; }
+  .maplibregl-ctrl-bottom-right { margin-bottom: 0; }
+  /* Backdrop blur is one of the few GPU costs the sheets add while the map moves
+     under them; a lighter blur reads the same on a small screen. */
+  .panel, .topbar, .sidebar, .detail, .hud, .tool, .fab {
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
 }
