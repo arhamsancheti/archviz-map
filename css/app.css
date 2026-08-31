@@ -98,16 +98,14 @@ svg {
 }
 
 .brand { display: flex; align-items: center; gap: 9px; padding: 0 6px 0 4px; flex: none; }
-/* The mark: a V nested in an open U, both one weight of line. No tile, no fill and
-   no gradient - at 26px a monoline reads as a drawn mark rather than an icon, and it
-   inherits the ink around it, so the blue accent stays reserved for what you can
-   click. */
-.logo { width: 27px; height: 27px; flex: none; color: var(--text); }
-.logo.big { width: 56px; height: 56px; }
-.logo .mark {
-  fill: none; stroke: currentColor; stroke-width: 1.7;
-  stroke-linecap: round; stroke-linejoin: round;
-}
+/* The mark: the V knocked out of a solid tile. Negative space carries it, so there
+   is one shape and one colour at every size - which is what makes it survive the
+   18px favicon as well as the 56px boot screen. It inherits the ink around it, so
+   the blue accent stays reserved for what you can click. */
+.logo { width: 26px; height: 26px; flex: none; color: var(--text); }
+.logo.big { width: 54px; height: 54px; }
+.logo .tile { fill: currentColor; stroke: none; }
+.logo .cut { fill: var(--surface-solid); stroke: none; }
 .brand-name { font-weight: 650; letter-spacing: 0.02em; font-size: 16px; }
 .brand-sub {
   color: var(--muted); font-size: 12px; white-space: nowrap;

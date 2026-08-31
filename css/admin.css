@@ -17,6 +17,7 @@ body.admin {
 .admin .btn { flex: none; width: auto; text-decoration: none; }
 .admin .btn.ghost { padding: 9px 14px; }
 .admin .logo { width: 24px; height: 24px; }
+.admin .logo .cut { fill: var(--surface-solid); }
 .admin .brand { text-decoration: none; color: inherit; gap: 8px; }
 
 .admin-top {

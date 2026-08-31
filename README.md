@@ -91,6 +91,11 @@ scale, which is how you catch a centimetres export before it lands as a district
 to a display copy and a thumbnail on upload. The first one becomes the panel's cover
 image; the rest become the strip under the tagline and open full-size on click.
 
+No export to hand? **Use the bundled sample** on the Model tab puts the repository's
+stand-in tower block on the plot so you can try the placement editor straight away -
+it goes through the same upload path, so it gets its own optimised builds and its own
+measured bounds.
+
 Everything is written straight into `data/projects.json`, which is the only thing the
 map reads. Editing that file by hand still works, and so does the seeded generator:
 
@@ -100,6 +105,22 @@ node tools/gen-projects.mjs      # rewrites the demo ten
 
 Both routes go through the same `makeProject` in `tools/registry-lib.mjs`, so a
 project created either way is the same shape.
+
+### Demo photography
+
+The ten seeded projects ship with drawn placeholder images, so the gallery is not
+empty before real renders exist:
+
+```bash
+node tools/make-demo-media.mjs           # any project that has none
+node tools/make-demo-media.mjs --force   # redraw
+node tools/make-demo-media.mjs --clear   # delete them when real photos arrive
+```
+
+Six scenes each, rendered from the project's own master plan - its real tower
+positions, heights and footprints, tinted with its accent colour. The site plan is a
+true drawing of `plan` at the same rotation the map uses, with tower ids, the jogging
+loop, amenity positions, a north arrow and a scale bar. 60 images, 1.5 MB in total.
 
 The admin binds to localhost and has no login, because it is a local authoring tool.
 Putting it on a network means putting a real login in front of it first.
@@ -257,6 +278,8 @@ admin.html            admin shell
 serve.mjs             static serving + the admin API
 tools/optimize.mjs      the model pipeline as a library
 tools/registry-lib.mjs  plan and facts generation, shared by the CLI and the API
+tools/media.mjs         storing a photo, shared by the generator and the upload
+tools/make-demo-media.mjs  drawn placeholder scenes per project
 media/<id>/           uploaded photos (display copy + thumbnail)
 models/<id>/          the three streamed builds of a client's model
 PROGRESS.md           build log, decisions, what is left

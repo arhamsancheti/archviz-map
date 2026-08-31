@@ -661,6 +661,50 @@ full-resolution images.
 - The streaming HUD is gone. It existed to make the LOD ladder visible in a demo and
   had done that; `__app.streaming.stats()` still reports the same numbers.
 
+## Round 10 (2026-08-31) - the zoom-out stall, and making the admin testable
+
+**Zooming out from a project stuck, and it was ours.** `syncTerrain` only ran on
+`moveend` - but a wheel or pinch zoom-out is ONE gesture whose moveend fires when it
+finally settles. So the DEM mesh stayed alive for the entire globe transition, which
+is the exact combination `terrainMinZoom` exists to avoid. MapLibre had been saying so
+in the console the whole time: "terrain is not fully supported on vertical perspective
+projection".
+
+The two directions are deliberately asymmetric now. Removal runs in the rAF camera
+frame, so it catches a gesture in progress; enabling still waits for moveend, because
+adding a mesh mid-animation is the direction upstream handles badly and there is no
+hurry - the ground is flat until you arrive. Verified both ways.
+
+Worth recording how this was found, because the first instinct was wrong: profiling
+our own handlers showed 5 ms total across 55 calls and zero long tasks. The cost was
+never in our JavaScript. It was one API call made at the wrong moment.
+
+On the same path: below the massing zoom both GeoJSON sources are empty, and an empty
+source does not care which projects are in view - so the signature drops the ids
+there. Without that, zooming out re-sent two empty FeatureCollections to the worker
+every 150 ms, because the visible set churns constantly while the viewport sweeps
+across the country.
+
+**The placement editor was unreachable.** It only appears once a project has a model,
+so with nothing uploaded there was nowhere to see it - you had to upload something
+first, every time. "Use the bundled sample" now puts the repository's stand-in block
+on the plot, and does it by sending that file through the normal upload endpoint
+rather than special-casing it: the sample gets its own optimised builds and its own
+measured bounds, and the button exercises exactly what a real upload does.
+
+**Demo photography.** `tools/make-demo-media.mjs` draws six scenes per project from
+the project's own master plan. The site plan is a true drawing of `plan`, not
+decoration. Composition rule, learned by looking at the first attempt: things sit ON a
+line - the deck, the lawn, the floor - and cast a shadow onto it. The first pass had a
+clubhouse floating in the sky above a grey band, which reads as a diagram rather than
+a photograph.
+
+**The mark, third time.** Gradient tile read as generic; monoline read as slight. It
+is now the V knocked out of a solid tile - negative space, one shape, one colour at
+every size, which is what makes it survive an 18px favicon as well as the 56px boot
+screen. Chosen from five candidates rendered side by side at 56/27/18px in both the
+light and dark lockups, rather than guessed at a fourth time.
+
 ## Decisions made
 
 - **MapLibre, not Cesium/Google Photorealistic Tiles.** No API key, no per-load billing,
