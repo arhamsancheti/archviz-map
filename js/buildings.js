@@ -414,7 +414,7 @@ export function assetUrlFor(asset, level) {
  * `heading` is degrees clockwise from north, `offset` nudges it off the pin, and
  * `autoGround` drops it so its lowest point rests on the ground.
  */
-function placeAsset(inner, asset) {
+export function placeAsset(inner, asset) {
   const scale = asset.scale || 1;
   inner.scale.setScalar(scale);
   inner.rotation.y = -((asset.heading || 0) * Math.PI) / 180;
@@ -469,6 +469,9 @@ export async function loadProject(project, level = 'high', opts = {}) {
   });
   return {
     group: root,
+    // the node placeAsset transforms - the admin re-aims it as you drag, rather than
+    // re-downloading the model on every slider tick
+    inner,
     level,
     bytes: geometryBytes(geos),
     dispose() {

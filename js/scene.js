@@ -185,6 +185,16 @@ export class SceneManager {
     return this.entries.has(id);
   }
 
+  /** Move a resident model to a new pin. Used by the placement editor. */
+  setLngLat(id, lngLat) {
+    const entry = this.entries.get(id);
+    if (!entry) return;
+    entry.lngLat = lngLat;
+    entry.altitude = undefined; // force a re-sample on the new ground
+    this.updateAltitudes();
+    if (this.map) this.map.triggerRepaint();
+  }
+
   /**
    * Sit every model on the terrain. Elevation tiles arrive asynchronously, so this is
    * re-run whenever the map goes idle; with terrain off it resolves to 0.
