@@ -37,28 +37,24 @@ export class StreamingManager {
     this.map = map;
     this.scene = sceneManager;
     this.projects = projects;
+    /**
+     * Which projects the map is currently offering. Filtering the list hides pins,
+     * so streaming geometry for what is hidden is both wrong to look at and wasted
+     * download. The selected project stays in regardless - see `update`.
+     */
+    this.candidates = projects;
     this.byId = new Map(projects.map((p) => [p.id, p]));
 
     this.queue = [];
     this.inFlight = new Set();
     this.lastUsed = new Map(); // id -> timestamp, for LRU
     this.selectedId = null;
-    this.listeners = new Set();
     this.visibleIds = [];
     this.tier = 'pin';
     this.level = 'low'; // which build of each model the current zoom calls for
   }
 
-  onChange(fn) {
-    this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
-  }
-
-  emit() {
-    const s = this.stats();
-    for (const fn of this.listeners) fn(s);
-  }
-
+  /** A snapshot of the loading state, for `window.__app.streaming.stats()`. */
   stats() {
     const { resident, bytes } = this.scene.stats();
     return {
@@ -68,8 +64,14 @@ export class StreamingManager {
       queued: this.queue.length + this.inFlight.size,
       level: this.level,
       bytes,
-      total: this.projects.length,
+      total: this.candidates.length,
     };
+  }
+
+  /** Narrow what streaming will consider, in registry order. */
+  setCandidates(list) {
+    this.candidates = list;
+    this.update();
   }
 
   select(id) {
@@ -84,8 +86,7 @@ export class StreamingManager {
    * to evict its geometry mid-look. Anything very close to the camera is kept
    * regardless, and anything absurdly far is dropped without projecting it.
    */
-  isOnScreen(project, centre, zoom) {
-    const d = distanceKm(project.location, centre);
+  isOnScreen(project, centre, zoom, d = distanceKm(project.location, centre)) {
     if (d < LOD.viewportPaddingKm) return true;
     // The distance cap is about not streaming geometry from the next state over, so
     // it only applies once we are close enough to stream anything. Zoomed out to the
@@ -114,9 +115,20 @@ export class StreamingManager {
     const zoom = this.map.getZoom();
     const centre = this.map.getCenter();
 
-    const visible = this.projects.filter((p) => this.isOnScreen(p, centre, zoom));
-    visible.sort((a, b) => distanceKm(a.location, centre) - distanceKm(b.location, centre));
-    this.visibleIds = visible.map((p) => p.id);
+    // One haversine per project, reused by the screen test and the nearest-first
+    // ordering. The old pass measured each project three times, on every camera move.
+    const selected = this.selectedId ? this.byId.get(this.selectedId) : null;
+    const pool = selected && !this.candidates.includes(selected)
+      ? [...this.candidates, selected]
+      : this.candidates;
+
+    const visible = [];
+    for (const p of pool) {
+      const d = distanceKm(p.location, centre);
+      if (this.isOnScreen(p, centre, zoom, d)) visible.push({ p, d });
+    }
+    visible.sort((a, b) => a.d - b.d);
+    this.visibleIds = visible.map((v) => v.p.id);
     this.tier = zoom < LOD.clusterMaxZoom ? 'pin' : zoom < LOD.modelMinZoom ? 'massing' : 'model';
     this.level = levelForZoom(zoom);
 
@@ -128,7 +140,7 @@ export class StreamingManager {
       : LOD.modelMinZoom;
     const wanted = new Set();
     if (zoom >= holdZoom) {
-      for (const p of visible.slice(0, LOD.maxResidentModels)) wanted.add(p.id);
+      for (const v of visible.slice(0, LOD.maxResidentModels)) wanted.add(v.p.id);
       if (this.selectedId) wanted.add(this.selectedId);
     }
 
@@ -150,8 +162,7 @@ export class StreamingManager {
     this.queue = this.queue.filter((id) => wanted.has(id));
     this.pump();
 
-    this.refreshMassing(zoom, visible);
-    this.emit();
+    this.refreshMassing(zoom, visible.map((v) => v.p));
   }
 
   trimToBudget(wanted) {
@@ -174,10 +185,8 @@ export class StreamingManager {
       const id = this.queue.shift();
       if (this.scene.levelOf(id) === this.level) continue;
       this.inFlight.add(id);
-      this.emit();
       this.loadOne(id).finally(() => {
         this.inFlight.delete(id);
-        this.emit();
         if (this.queue.length) this.pump();
       });
     }

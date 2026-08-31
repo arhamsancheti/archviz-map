@@ -78,25 +78,6 @@ function facadeTexture(style) {
   });
 }
 
-/** Same grid, but only the lit windows - used as an emissive map after dark. */
-function litTexture(style) {
-  return canvasTexture('lit:' + style, 512, (ctx, S) => {
-    const cell = S / 4;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, S, S);
-    let seed = 4919 + style.length * 31;
-    const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
-    for (let fy = 0; fy < 4; fy++) {
-      for (let fx = 0; fx < 4; fx++) {
-        if (rand() > 0.42) continue;
-        const warm = 0.7 + rand() * 0.3;
-        ctx.fillStyle = 'rgba(' + Math.round(255 * warm) + ',' + Math.round(198 * warm) + ',' + Math.round(130 * warm) + ',1)';
-        ctx.fillRect(fx * cell + cell * 0.06, fy * cell + cell * 0.05, cell * 0.88, cell * 0.62);
-      }
-    }
-  });
-}
-
 /* ----------------------------------------------------------------- materials */
 
 const materialCache = new Map();
@@ -109,9 +90,6 @@ function facadeMaterial(style) {
   return shared('facade:' + style, () =>
     new THREE.MeshStandardMaterial({
       map: facadeTexture(style),
-      emissiveMap: litTexture(style),
-      emissive: new THREE.Color(0xffffff),
-      emissiveIntensity: 0,
       roughness: style === 'stone' ? 0.75 : 0.28,
       metalness: style === 'stone' ? 0.05 : 0.45,
     })
@@ -126,13 +104,6 @@ const pathMaterial = () => shared('path', () => new THREE.MeshStandardMaterial({
 const waterMaterial = () => shared('water', () => new THREE.MeshStandardMaterial({ color: 0x2f7fb5, roughness: 0.08, metalness: 0.6 }));
 const trunkMaterial = () => shared('trunk', () => new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 }));
 const leafMaterial = () => shared('leaf', () => new THREE.MeshStandardMaterial({ color: 0x3f6b3a, roughness: 1, flatShading: true }));
-
-/** Set once when the basemap theme changes; every tower picks it up for free. */
-export function setNightLighting(on) {
-  for (const [key, mat] of materialCache) {
-    if (key.startsWith('facade:')) mat.emissiveIntensity = on ? 1.15 : 0;
-  }
-}
 
 /* ------------------------------------------------------------------ geometry */
 

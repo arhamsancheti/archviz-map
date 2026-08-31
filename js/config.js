@@ -1,40 +1,13 @@
 /** Tunables for the whole prototype. Everything a producer would want to tweak. */
 
-export const BASEMAPS = {
-  day: {
-    label: 'Day',
-    style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-    theme: 'light',
-    sky: { top: '#bcd8f5', bottom: '#e8f1fb', sun: 0.9 },
-  },
-  night: {
-    label: 'Night',
-    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-    theme: 'dark',
-    sky: { top: '#0a1020', bottom: '#141c30', sun: 0.25 },
-  },
-  satellite: {
-    label: 'Satellite',
-    style: {
-      version: 8,
-      glyphs: 'https://basemaps.cartocdn.com/gl/positron-gl-style/{fontstack}/{range}.pbf',
-      sources: {
-        esri: {
-          type: 'raster',
-          tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-          tileSize: 256,
-          maxzoom: 19,
-          attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
-        },
-      },
-      layers: [
-        { id: 'bg', type: 'background', paint: { 'background-color': '#0b0f14' } },
-        { id: 'esri', type: 'raster', source: 'esri' },
-      ],
-    },
-    theme: 'dark',
-    sky: { top: '#2a3a4d', bottom: '#5b7b96', sun: 0.7 },
-  },
+/**
+ * One basemap. Carto's Voyager reads closest to Apple Maps, needs no key, and its
+ * vector tiles carry the OSM building footprints we extrude for city context - a
+ * raster imagery layer carries none, which is why the satellite option went.
+ */
+export const BASEMAP = {
+  style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+  sky: { top: '#bcd8f5', bottom: '#e8f1fb', sun: 0.9 },
 };
 
 /**
@@ -140,7 +113,6 @@ export const PERF = (() => {
     shadowMapSize: mobile ? 1024 : 2048,
     antialias: !mobile,
     maxResidentModels: mobile ? 2 : 4,
-    cityBuildings: true,
   };
 })();
 
@@ -165,15 +137,6 @@ export const CAMERA = {
    */
   levelOutZoom: 7,
 };
-
-export const fmtPrice = (n) => {
-  if (n >= 10000000) return '₹ ' + (n / 10000000).toFixed(2).replace(/\.00$/, '') + ' Cr';
-  if (n >= 100000) return '₹ ' + (n / 100000).toFixed(2).replace(/\.00$/, '') + ' L';
-  return '₹ ' + n.toLocaleString('en-IN');
-};
-
-export const fmtMB = (bytes) =>
-  bytes < 1048576 ? Math.round(bytes / 1024) + ' KB' : (bytes / 1048576).toFixed(1) + ' MB';
 
 export const STATUS_TONE = {
   'Ready to Move': 'ok',

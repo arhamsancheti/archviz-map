@@ -83,12 +83,14 @@ export class MarkerLayer {
         marker._sig = sig;
         const el = marker.getElement();
         if (members.length > 1) {
-          el.innerHTML = `<i style="background:${members[0].accent}"></i>${members.length} projects`;
+          el.innerHTML =
+            `<i style="background:${members[0].accent}"></i><span class="count">${members.length}</span>projects`;
+          el.classList.remove('selected');
           el.onclick = () => this.onCluster([lng, lat], members);
         } else {
           const p = members[0];
           el.innerHTML = `<i style="background:${p.accent}"></i>${p.name}`;
-          el.style.outline = p.id === selectedId ? '2px solid ' + p.accent : '';
+          el.classList.toggle('selected', p.id === selectedId);
           el.onclick = () => this.onSelect(p.id);
         }
       }

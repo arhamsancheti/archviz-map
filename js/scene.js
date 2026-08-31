@@ -36,6 +36,14 @@ export class SceneManager {
     this.entries = new Map(); // id -> { group, lngLat, dispose, bytes }
     this.renderer = null;
     this.map = null;
+    /**
+     * Only one project casts shadows at a time. Each resident model is drawn in its
+     * own pass, and a pass with a shadow-casting mesh in it costs a second, full
+     * depth render of that model - so four residents meant eight renders a frame for
+     * shadows nobody is looking at. The selected project (or, with nothing selected,
+     * the first resident) keeps them; the rest are lit but flat.
+     */
+    this.shadowFocusId = null;
 
     this.hemi = new THREE.HemisphereLight(0xdfefff, 0x35402f, 1.35);
     this.scene.add(this.hemi);
@@ -100,7 +108,11 @@ export class SceneManager {
             : args && args.defaultProjectionData && args.defaultProjectionData.mainMatrix;
         if (!main) return;
 
-        // Draw one project at a time, each in its own local frame.
+        // Draw one project at a time, each in its own local frame. Everything starts
+        // hidden and each pass reveals only its own group, so the cost of isolating a
+        // project does not grow with how many are resident.
+        for (const entry of self.entries.values()) entry.group.visible = false;
+
         for (const entry of self.entries.values()) {
           // A model whose whole site is a few pixels across still costs a full draw
           // plus its shadow pass - the exact situation during a zoomed-out approach,
@@ -114,9 +126,10 @@ export class SceneManager {
           if (!world) continue;
           self.camera.projectionMatrix = SCRATCH_MAIN.fromArray(main).multiply(world);
 
-          for (const other of self.entries.values()) other.group.visible = other === entry;
+          entry.group.visible = true;
           owned.resetState();
           owned.render(self.scene, self.camera);
+          entry.group.visible = false;
         }
 
         for (const entry of self.entries.values()) entry.group.visible = true;
@@ -152,6 +165,7 @@ export class SceneManager {
       id, group: model.group, dispose: model.dispose,
       bytes: model.bytes, level: model.level || 'high', lngLat, radiusM,
     });
+    this.applyShadowFocus();
     this.updateAltitudes();
     if (this.map) this.map.triggerRepaint();
   }
@@ -162,6 +176,7 @@ export class SceneManager {
     this.scene.remove(entry.group);
     entry.dispose();
     this.entries.delete(id);
+    this.applyShadowFocus();
     if (this.map) this.map.triggerRepaint();
     return entry.bytes;
   }
@@ -211,15 +226,27 @@ export class SceneManager {
     for (const id of [...this.entries.keys()]) this.remove(id);
   }
 
-  /** Match the lighting to the basemap so models never look pasted on. */
-  setTheme(basemap) {
-    const night = basemap.theme === 'dark';
-    this.hemi.intensity = night ? 0.5 : 1.35;
-    this.hemi.color.set(night ? 0x24304a : 0xdfefff);
-    this.sun.intensity = night ? 0.5 : 2.1 * basemap.sky.sun;
-    this.sun.color.set(night ? 0x9fb6ff : 0xfff2e0);
-    this.ambient.intensity = night ? 0.15 : 0.22;
+  /** Which project deserves the one shadow pass we can afford. */
+  setShadowFocus(id) {
+    if (this.shadowFocusId === id) return;
+    this.shadowFocusId = id;
+    this.applyShadowFocus();
     if (this.map) this.map.triggerRepaint();
+  }
+
+  applyShadowFocus() {
+    if (!PERF.shadows) return;
+    const focus = this.entries.has(this.shadowFocusId)
+      ? this.shadowFocusId
+      : this.entries.keys().next().value;
+    for (const [id, entry] of this.entries) {
+      const on = id === focus;
+      if (entry.castsShadows === on) continue;
+      entry.castsShadows = on;
+      entry.group.traverse((o) => {
+        if (o.isMesh) o.castShadow = on;
+      });
+    }
   }
 
   stats() {
