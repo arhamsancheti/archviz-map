@@ -20,6 +20,7 @@ import { pipeline } from 'node:stream/promises';
 import { join, extname, normalize, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
+import { storeImage, IMAGE_CATEGORIES } from './tools/media.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT) || 5173;
@@ -54,8 +55,6 @@ const MIME = {
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif']);
 const MODEL_EXT = new Set(['.glb', '.gltf']);
-
-export const IMAGE_CATEGORIES = ['exterior', 'amenities', 'interiors', 'towers', 'plans'];
 
 /* ------------------------------------------------------------------ registry */
 
@@ -166,63 +165,6 @@ async function readJson(req) {
   }
   if (!chunks.length) return {};
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
-}
-
-/* --------------------------------------------------------------------- media */
-
-/**
- * Store one uploaded photo. With sharp available it is resized to a display copy and
- * a thumbnail, both WebP - a 12 MB camera JPEG becomes about 200 KB, which matters
- * because these load in the detail panel while a 3D model is streaming behind them.
- * Without sharp the original is kept and used for both, which still works.
- */
-async function storeImage({ projectId, tmpPath, ext, category, caption }) {
-  const id = randomUUID().slice(0, 8);
-  const dir = join(MEDIA_DIR, projectId);
-  await mkdir(dir, { recursive: true });
-
-  let sharp = null;
-  try {
-    sharp = (await import('sharp')).default;
-  } catch { /* keep the original */ }
-
-  let record;
-  if (sharp) {
-    const image = sharp(tmpPath, { failOn: 'none' });
-    const meta = await image.metadata();
-    const fullName = id + '.webp';
-    const thumbName = id + '.thumb.webp';
-    await sharp(tmpPath).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 82 }).toFile(join(dir, fullName));
-    await sharp(tmpPath).rotate().resize({ width: 480, height: 480, fit: 'cover' })
-      .webp({ quality: 74 }).toFile(join(dir, thumbName));
-    const size = await stat(join(dir, fullName));
-    record = {
-      id,
-      url: `media/${projectId}/${fullName}`,
-      thumb: `media/${projectId}/${thumbName}`,
-      width: meta.width || null,
-      height: meta.height || null,
-      bytes: size.size,
-    };
-    await rm(tmpPath, { force: true });
-  } else {
-    const name = id + ext;
-    await rename(tmpPath, join(dir, name));
-    const size = await stat(join(dir, name));
-    record = {
-      id,
-      url: `media/${projectId}/${name}`,
-      thumb: `media/${projectId}/${name}`,
-      width: null,
-      height: null,
-      bytes: size.size,
-    };
-  }
-
-  record.category = IMAGE_CATEGORIES.includes(category) ? category : 'exterior';
-  record.caption = String(caption || '').slice(0, 160);
-  return record;
 }
 
 /* ----------------------------------------------------------------------- api */
@@ -391,6 +333,7 @@ async function handleApi(req, res, url) {
     let record;
     try {
       record = await storeImage({
+        mediaDir: MEDIA_DIR,
         projectId: id,
         tmpPath,
         ext,

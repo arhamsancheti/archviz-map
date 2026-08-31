@@ -343,6 +343,11 @@ function paintModel(p) {
         <b>Drop a .glb or .gltf</b>
         <span>or click to choose a file</span>
       </div>
+      <div class="form-foot">
+        <button class="btn ghost" id="model-sample" style="flex:none">Use the bundled sample</button>
+        <span class="msg">No export to hand? This puts a stand-in tower block on the plot so you
+          can try the placement editor.</span>
+      </div>
       <div id="model-progress"></div>
     </div>`}
 
@@ -356,6 +361,7 @@ function paintModel(p) {
       </div>
       <div class="form-foot">
         <button class="btn ghost" id="model-replace" style="flex:none">Replace the model</button>
+        <button class="btn ghost" id="model-remove" style="flex:none">Remove</button>
         <span class="msg">Replacing keeps the placement below.</span>
       </div>
       <div id="model-progress"></div>
@@ -380,6 +386,29 @@ function paintModel(p) {
 function wireModelDrop(p) {
   const drop = $('#model-drop');
   const replace = $('#model-replace');
+  const sample = $('#model-sample');
+  const remove = $('#model-remove');
+
+  if (sample) {
+    sample.onclick = async () => {
+      sample.disabled = true;
+      // Straight through the normal upload path rather than a special case, so the
+      // sample gets its own optimised builds and its own measured bounds - and the
+      // button exercises exactly what a real upload does.
+      const blob = await fetch('models/sample/high.glb').then((r) => r.blob());
+      await sendModel(p, new File([blob], 'sample.glb', { type: 'model/gltf-binary' }));
+    };
+  }
+  if (remove) {
+    remove.onclick = async () => {
+      if (!confirm('Remove the model? The placement is kept, so re-uploading lands where this one did.')) return;
+      await api('PATCH', '/api/projects/' + p.id, {
+        plan: { asset: { format: 'glb', url: null, lods: null, bytes: 0 } },
+      });
+      await refresh();
+      render();
+    };
+  }
   const pick = () => {
     const input = document.createElement('input');
     input.type = 'file';
