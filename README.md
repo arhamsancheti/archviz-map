@@ -11,11 +11,15 @@ Runs in a browser, on a phone, with no plugin and no API keys.
 
 ```bash
 cd archviz-map
-node serve.mjs          # http://localhost:5173
+node serve.mjs          # the map     http://localhost:5173
+                        # the admin   http://localhost:5173/admin
 ```
 
-Any static server works; `serve.mjs` is here so there is nothing to install.
-Deep links work too: `http://localhost:5173/?p=lakeside-habitat`.
+The map itself needs nothing installed - MapLibre and three.js come from a CDN and
+`serve.mjs` serves the files. Run `npm install` once if you want to upload models and
+photos through the admin, which is where the heavy lifting lives.
+
+Deep links work: `http://localhost:5173/?p=lakeside-habitat`.
 
 ## What you can do in it
 
@@ -68,20 +72,37 @@ happen. Set `enabled: false` for raw speed.
 
 ## Adding a client project
 
-Everything the app knows lives in `data/projects.json`. Edit
-`tools/gen-projects.mjs` and re-run it:
+Open **http://localhost:5173/admin**. Three tabs per project:
+
+**Details.** Name, developer, locality, price, configurations, land area, towers,
+possession, RERA, accent colour. Saving rebuilds the generated parts - unit mix,
+nearby places, the specification, the master plan - from those numbers. The plan is
+seeded on the project id, so re-saving never reshuffles a site you have already
+placed a model on.
+
+**Model & placement.** Drop the export in. It is optimised into the three builds the
+map streams (below), and the report tells you what came off. Then drag the handle to
+move it, and set which way it faces and how big it is. That panel is the map's own
+renderer, on the real terrain, inside the real site outline - what you align is what
+the product draws. The live readout says how big the model actually is at the current
+scale, which is how you catch a centimetres export before it lands as a district.
+
+**Photos.** Renders, site shots, amenities, interiors, floor plates. They are resized
+to a display copy and a thumbnail on upload. The first one becomes the panel's cover
+image; the rest become the strip under the tagline and open full-size on click.
+
+Everything is written straight into `data/projects.json`, which is the only thing the
+map reads. Editing that file by hand still works, and so does the seeded generator:
 
 ```bash
-node tools/gen-projects.mjs
+node tools/gen-projects.mjs      # rewrites the demo ten
 ```
 
-One entry needs: name, developer, city, locality, lng/lat, status, price, accent
-colour, and the facts shown in the panel. The generator turns tower count, floor range
-and land area into a plausible master plan (`plan`), which is what the prototype draws.
+Both routes go through the same `makeProject` in `tools/registry-lib.mjs`, so a
+project created either way is the same shape.
 
-**When a real model exists**, set `plan.asset.url` to its `.glb` and the loader uses it
-instead of the procedural plan - no other code changes. `js/buildings.js` already
-branches on this and disposes GLTF geometry and textures on eviction.
+The admin binds to localhost and has no login, because it is a local authoring tool.
+Putting it on a network means putting a real login in front of it first.
 
 ## Placing a real model (lat/lng + .glb)
 
@@ -128,19 +149,32 @@ on load and warns with the exact `scale` to set if it looks like a unit mismatch
 
 ## Making the LODs, and optimising the high-poly mesh
 
+The admin upload does this for you. The same pipeline is on the command line:
+
 ```bash
 npm install                                   # once
 node tools/prepare-model.mjs export.glb --id lakeside-habitat
 ```
 
 That emits `models/<id>/{high,mid,low}.glb` and prints the `asset` block above, filled
-in, ready to paste.
+in, ready to paste. Both routes call `buildLods` in `tools/optimize.mjs`, so they
+cannot drift.
 
-Every level gets the same cleanup first - dedupe repeated meshes and materials, flatten
-the scene graph, **join meshes** (draw calls are usually the real cost in an archviz
-export, not triangles), weld vertices, drop unused data, then Draco-compress. On top of
-that, `mid` keeps ~35% of the triangles and `low` ~8%, using meshoptimizer's simplifier,
-and textures are resized per level (2048 / 1024 / 256) if `sharp` is installed.
+Every level gets the same cleanup first, and the order matters:
+
+| Step | Why |
+|---|---|
+| `dedup` | byte-identical meshes, materials and textures collapse to one |
+| `instance` | repeated parts - windows, balconies, railings - become GPU instances. An archviz export is mostly repeats, so this is the cheapest big win there is |
+| `flatten` | drops the deep empty-node hierarchies exporters leave behind |
+| `join` | merges what shares a material. Draw calls, not triangles, are usually what actually costs you |
+| `weld` | merges coincident vertices, and is required before simplification |
+| `resample` | thins animation keyframes |
+
+Then per level: `mid` keeps ~35% of the triangles and `low` ~8% using meshoptimizer's
+simplifier, textures are resized (2048 / 1024 / 256) and converted to WebP if `sharp`
+is installed, and the geometry is Draco-compressed. Nothing above changes what the
+model looks like except the simplifier, which is off for `high`.
 
 Measured on the sample export (`node tools/make-sample-glb.mjs sample.glb`):
 
@@ -215,9 +249,16 @@ js/ui.js              list, filter panel, detail panel, HUD, toasts
 js/app.js             wiring
 data/projects.json    the client registry (generated)
 tools/gen-projects.mjs  generator for the above
-tools/prepare-model.mjs optimise a client export into high/mid/low builds
+tools/prepare-model.mjs CLI over tools/optimize.mjs
 tools/make-sample-glb.mjs  throwaway export for trying the pipeline
-serve.mjs             zero-dependency static server
+js/admin.js           the authoring UI: form, model upload, placement, photos
+css/admin.css         admin layout, on top of the app's tokens
+admin.html            admin shell
+serve.mjs             static serving + the admin API
+tools/optimize.mjs      the model pipeline as a library
+tools/registry-lib.mjs  plan and facts generation, shared by the CLI and the API
+media/<id>/           uploaded photos (display copy + thumbnail)
+models/<id>/          the three streamed builds of a client's model
 PROGRESS.md           build log, decisions, what is left
 ```
 
@@ -246,13 +287,13 @@ old on-screen streaming panel used to show.
 
 ## What production needs next
 
-1. **Real geometry pipeline.** Unreal to glTF, Draco-compressed, ideally cut into
-   3D Tiles per project so a large township streams progressively instead of as one
-   file. Host on a CDN.
+1. **Real geometry pipeline at scale.** The upload path works; a large township wants
+   3D Tiles rather than one .glb, so it streams progressively. Host on a CDN.
 2. **Interiors.** Keep them in the Unreal build and deep-link, or pixel-stream a
    session on demand from the button that is already wired.
-3. **Admin per client** to upload models and edit project copy, replacing the
-   generated JSON.
+3. **Auth and multi-tenancy on the admin.** It writes a JSON file and trusts whoever
+   can reach it, which is right for a local tool and wrong for anything shared.
+   A login, per-client scoping, and a database instead of a file.
 4. **Analytics** - which projects get opened, how long people stay, where from. This is
    the thing builders will pay for on top of the model.
 5. **Real placement.** Right now a project sits at its pin with a generated footprint.

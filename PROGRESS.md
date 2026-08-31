@@ -590,6 +590,77 @@ by diffing every `plan` before and after.
 - Suggestions now close on a pointerdown outside the search box, not only on blur: the
   panel can be open without the box ever having been focused.
 
+## Round 9 (2026-08-31) - a back end, so projects stop being hand-edited JSON
+
+Everything the map knows still lives in `data/projects.json`. What changed is that
+you no longer have to open it.
+
+**One code path for building a registry entry.** `tools/registry-lib.mjs` holds the
+plan and facts generation; `tools/gen-projects.mjs` builds the seeded demo ten with
+it and the API builds real ones with it. Extracting it was verified by diffing every
+generated `plan` before and after - byte-identical.
+
+**The API** lives next to the static serving in `serve.mjs`. Create a project, PATCH
+it, PUT a `.glb`, POST photos, poll the job. Two decisions worth recording:
+
+- **Uploads are raw request bodies, not multipart.** The browser sends the `File`
+  straight as the body and the server pipes it to disk. No multipart parser to write,
+  no dependency to add, and a 1 GB export never sits in memory - which is the whole
+  point, since a 1 GB export is exactly the case the optimiser exists for.
+- **The registry is written through a temp file and a promise chain.** Read-modify-
+  write on one JSON file has to queue or concurrent edits clobber each other, and a
+  crash mid-write must not leave a truncated file.
+
+**The model pipeline became a library** (`tools/optimize.mjs`), so the CLI and the
+upload cannot drift. On top of what `prepare-model.mjs` already did it gained
+`instance()` - an archviz export is mostly repeated windows, balconies and railings,
+so GPU instancing is the cheapest big win available - a before/after report including
+texture weight, and a bounding-box measurement.
+
+That measurement earns its place twice. It catches the commonest upload mistake, a
+file exported in centimetres, which otherwise lands as a building the size of a
+district. And it resizes `plan.site` to the real building, which the site plate, the
+massing footprint and the screen-size cull all read - before this they described a
+generated plot that had nothing to do with the model standing on it.
+
+**The placement editor** reuses `SceneManager` and `loadProject` rather than a
+simplified preview, on the real terrain and inside the real site outline. If the
+editor and the product used different code, "it looked right when I placed it" would
+eventually stop meaning anything. Sliders re-aim the already-loaded model through the
+now-exported `placeAsset` instead of refetching the `.glb` on every tick, and only the
+numeric readouts repaint mid-drag - rebuilding the panel would replace the input under
+the pointer and drop the gesture.
+
+**Photos.** Uploads are resized to a 1600px display copy and a 480px thumbnail, both
+WebP - a 12 MB camera JPEG becomes about 200 KB, which matters because these load in
+the detail panel while a model is streaming behind them. The first image becomes the
+panel's cover; the rest are a strip that opens a lightbox. The lightbox is built on
+demand and thrown away on close, because it is the only thing that loads
+full-resolution images.
+
+### Three bugs found by using it
+
+- **The preview model sank into the hill.** Elevation tiles arrive after the camera
+  settles and `idle` is not guaranteed, so the model kept the altitude it was added
+  with (0) while the terrain under it rose to 866 m. The map app already hooks
+  `sourcedata` on the DEM source for exactly this; the editor now does too.
+- **`.card` collided.** It already meant "a project card" in `app.css`, where it is a
+  two-column grid - which turned every admin panel inside out. Renamed to `.pane`.
+- **Two copies of sharp.** `@gltf-transform/functions` pulls one in through
+  `ndarray-pixels`; ours was a major behind. Two native bindings in one process fail
+  to load on Windows, and the failure reads as "tooling is not installed" unless you
+  look at the path in the error. Pinned to the same major, and `loadTooling` now
+  tells a missing module apart from a broken one.
+
+### Also
+
+- The mark went monoline: a V nested in an open U, one weight of line, no tile and no
+  gradient, inheriting the ink around it.
+- Filters moved out of the top bar into the list, next to the sort control.
+- Collapsing the list leaves a "Projects - N" handle instead of nothing.
+- The streaming HUD is gone. It existed to make the LOD ladder visible in a demo and
+  had done that; `__app.streaming.stats()` still reports the same numbers.
+
 ## Decisions made
 
 - **MapLibre, not Cesium/Google Photorealistic Tiles.** No API key, no per-load billing,
