@@ -7,9 +7,10 @@
   "scripts": {
     "start": "node serve.mjs",
     "registry": "node tools/gen-projects.mjs",
-    "prepare-model": "node tools/prepare-model.mjs"
+    "prepare-model": "node tools/prepare-model.mjs",
+    "admin": "node serve.mjs"
   },
-  "comment": "The app itself has no runtime dependencies - it loads MapLibre and three.js from a CDN and needs nothing installed. These are only for the offline model pipeline (tools/prepare-model.mjs).",
+  "comment": "The app itself has no runtime dependencies - it loads MapLibre and three.js from a CDN, and serve.mjs serves it with nothing installed. These are for the model and image pipeline: tools/prepare-model.mjs on the command line, and the same code behind the /admin uploads. sharp is pinned to the major that @gltf-transform/functions pulls in through ndarray-pixels - two copies of sharp in one process fail to load their native binding on Windows.",
   "devDependencies": {
     "@gltf-transform/core": "^4.1.0",
     "@gltf-transform/extensions": "^4.1.0",
@@ -18,6 +19,6 @@
     "meshoptimizer": "^0.22.0"
   },
   "optionalDependencies": {
-    "sharp": "^0.33.5"
+    "sharp": "^0.35.4"
   }
 }
