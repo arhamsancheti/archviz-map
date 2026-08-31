@@ -478,6 +478,118 @@ Phone absolutes (cold boot ~4.9 s to interactive under throttle + Fast 3G) are t
 emulator's floor, not a device measurement - a real mid-range phone deserves one
 look with `chrome://inspect` before the demo.
 
+## Round 8 (2026-08-31) - VU, search that understands a sentence, one control cluster
+
+**Branding.** Terrace -> **VU** ("view"). The mark is an inline SVG: a solid V inside an
+open U on a blue-violet-teal gradient tile, which also reads as a lens looking down.
+One `<linearGradient id="vu-grad">` at the top of the body serves every instance, so
+the topbar and the boot screen share one definition and scale to any size.
+
+**Night and satellite basemaps are gone.** Both cost more than they returned:
+
+- Satellite is raster imagery, and raster tiles carry no OSM building footprints - the
+  one basemap where the city-context extrusions silently did nothing.
+- Night existed to show the tower windows lit. That needed a second 512x512 emissive
+  texture per facade style (~4 MB of texture memory that was never sampled by day),
+  a `setNightLighting` pass over the material cache, a dark branch in the city-building
+  paint, a dark UI token set, and a full `setStyle` swap - which drops every source and
+  layer we own and re-runs `installLayers`, `applyWorld` and the terrain re-apply.
+
+Dropping them removed the style-swap path entirely, `litTexture`, the emissive maps,
+`SceneManager.setTheme`, `UI.setTheme`, and the `[data-theme='dark']` token block.
+`BASEMAPS` collapsed to a single `BASEMAP`.
+
+**The bottom-right controls were broken.** MapLibre's `NavigationControl` (29 px wide)
+and our own tools (40 px) were two stacks in one corner: different sizes, different
+shells, only one of them moving when the detail panel opened, and the column ran past
+the bottom of the viewport into the attribution bar. Replaced with one cluster we own -
+zoom in/out grouped, a compass that tracks bearing and resets north on click, then
+terrain / globe / orbit / home grouped - all 38 px, one shell per group, tooltips to
+the left, and the whole cluster plus the attribution translating together when the
+detail panel opens. `NavigationControl` is no longer added.
+
+**Search understands a sentence** (`js/filters.js`). `3 bhk under 1.5 cr in pune with a
+pool` parses into configuration, budget, city and amenity filters. It reads BHK and
+named types, budgets (`under 1.5 cr`, `above 90 lakh`, `₹1 Cr to ₹2 Cr`), cities and
+their nicknames (bangalore, bombay, gurgaon, blr, hyd), builders, status, `by 2027`,
+`above 2000 sqft`, eleven amenity vocabularies, and ranking words (`cheapest`,
+`luxury`, `largest`) that set the sort.
+
+Every match returns the **span** it consumed, which is what makes the chips honest:
+removing a chip splices that phrase out of the raw text and re-parses. Three ordering
+rules were needed - size before budget (`above 2000 sqft` would otherwise be read as a
+₹2 Cr floor), BHK before budget (`2 and 3 bhk` as a price band), and a band needs a
+unit or a currency symbol somewhere in it. A query that is entirely a project's own
+name skips parsing, so "Riverine Park" is not a request for projects with a park.
+
+**Filters panel** over the sidebar: budget as a two-handle slider over a discrete
+ladder of stops, configuration, status, possession, home size, amenities, city,
+developer, with a live "Show N projects" footer. Panel switches and parsed phrases
+merge facet by facet, parsed winning. Touching a control the sentence is driving makes
+that facet **yield**: the phrase is spliced out of the search box first, so a control
+is never set and then silently overridden.
+
+**Streaming follows the filter.** `StreamingManager.setCandidates` narrows what can go
+resident to the filtered list (the selected project stays in regardless). Filtering to
+two projects no longer downloads and holds geometry for eight hidden ones.
+
+**Detail panel** is four tabs now: Overview (highlights, construction progress bar, the
+numbers, RERA), Units (per-configuration size band, price band and an availability
+bar), Amenities, and a new Location tab (what is nearby with distance and drive time,
+plus the specification). `tools/gen-projects.mjs` grew a `buildFacts` pass on its own
+PRNG stream so the master-plan geometry is byte-identical after regeneration - verified
+by diffing every `plan` before and after.
+
+### Performance
+
+- **One shadow caster.** Each resident model is drawn in its own pass, and a pass with
+  a shadow-casting mesh costs a second full depth render of it. Four residents meant
+  eight renders a frame. `SceneManager.setShadowFocus` leaves `castShadow` on for the
+  selected project only. Measured with three residents at zoom 15.2: one caster, two
+  flat.
+- **Camera work split by how often it needs to run.** `move` used to fire one 160 ms
+  timer doing marker clustering *and* the streaming decision. Now one rAF coalesces
+  both, clustering at ~16 Hz (it has to look continuous) and the streaming decision at
+  ~7 Hz (it does not).
+- **One haversine per project per update**, not three - `isOnScreen` takes the distance
+  the caller already computed, and the nearest-first sort reuses it.
+- **Two `sourcedata` listeners merged into one**; the building-cutout scan now bails
+  while the map is moving (moveend and idle both catch up).
+- **Selection no longer rebuilds the list.** `markSelectedCard` flips one attribute
+  instead of re-rendering ten cards' innerHTML.
+- **~4 MB of texture memory freed** with the emissive night maps gone.
+- **First paint is not blocked by the map engine**: `maplibre-gl.js` is `defer`, and
+  three.js gets a `modulepreload` so it downloads alongside it rather than after the
+  first module executes. `contain: layout paint` on every floating panel keeps their
+  repaints out of the map's compositing.
+
+### Same round, after a look at it
+
+- **The mark went flat.** A blue-violet-teal gradient tile is the house style of every
+  generated logo on the internet right now, and it read as one. The tile is flat ink
+  (`--text`) with a white mark; the blue accent is reserved for interactive state, so
+  the chrome is one system instead of two palettes competing.
+- **Collapsing the list no longer collapses it to nothing.** The chevron used to slide
+  the whole panel off-screen with no way back on desktop - the only handle was a
+  phone-only FAB. It now leaves a "Projects · N" pill exactly where the list was, and
+  the count turns accent while a filter is on, so hiding the list hides no information.
+- **Filters moved out of the top bar and into the list**, next to the sort control,
+  where the thing being filtered actually is. "Clear all" moved with them, to the end
+  of the chip rail - remove-one and remove-all are now one gesture apart instead of in
+  two different places. The top bar is brand + search only and sized to its content
+  (760 px cap) rather than spanning the window, which gives the map back the whole top
+  right. On a phone that also drops it from two rows to one.
+- **The streaming HUD is gone.** It existed to make the LOD ladder visible in a demo
+  and had done that job. The numbers are still one call away in the console -
+  `__app.streaming.stats()` - and the ladder itself is unchanged. Removing it took the
+  listener/emit plumbing out of `StreamingManager` with it.
+- **`[hidden]` did not hide.** Three controls (the filter badge, the search clear
+  button, the suggest panel) set `display`, which outranks the UA `[hidden]` rule - so
+  the clear × and a "0" badge were both permanently visible. One `[hidden] { display:
+  none !important }` in the reset.
+- Suggestions now close on a pointerdown outside the search box, not only on blur: the
+  panel can be open without the box ever having been focused.
+
 ## Decisions made
 
 - **MapLibre, not Cesium/Google Photorealistic Tiles.** No API key, no per-load billing,

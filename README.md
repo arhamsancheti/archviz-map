@@ -1,4 +1,4 @@
-# Terrace - a 3D project map for the web
+# VU - a 3D project map for the web
 
 A lightweight web counterpart to our Unreal archviz product. One map carries every
 client's project: you see them as pins across the country, fly in, and the project's
@@ -25,16 +25,24 @@ Deep links work too: `http://localhost:5173/?p=lakeside-habitat`.
 - Projects cluster when you are far out and label themselves as you get closer.
 - Click a project card or its pin. The camera flies in, the 3D master plan streams in,
   and the detail panel opens.
-- **Overview / Amenities / Units** tabs. Clicking an amenity flies the camera to it.
-- Amenity hotspots appear on the model past zoom 16. Hover one to read its name.
-- **Day / Night / Satellite** basemaps. Night relights the models and turns the tower
-  windows on.
-- Orbit button circles the selected project; reset returns to the country view.
-- Search box filters by project, builder, locality or city. `/` focuses it, `Esc`
-  closes the panel.
-- The **Streaming** panel bottom-left shows the LOD tier, how many models are resident
-  and how much geometry is on the GPU. It is there to make the loading strategy
-  visible in a demo.
+- Amenity hotspots appear on the model past zoom 16. Hover one to read its name;
+  clicking one, in the panel or on the map, flies the camera to it.
+- **Overview / Units / Amenities / Location** tabs in the detail panel: unit mix with
+  price and availability per configuration, construction progress, what is nearby with
+  distances, and the specification.
+- **Ask for what you want.** The search box parses a sentence into filters:
+  `3 BHK under 1.5 Cr in Pune with a pool` becomes four chips you can remove one at a
+  time. It understands configurations, budgets (`under 1.5 cr`, `₹1 Cr to ₹2 Cr`,
+  `above 90 lakh`), cities and their nicknames, builders, status, possession year,
+  minimum size, amenities, and ranking words (`cheapest`, `luxury`, `largest`).
+- **Filters** panel for the same facets as switches, plus a budget slider, with a live
+  result count. Touching a control the sentence is currently driving hands that facet
+  back to the panel - the phrase is spliced out of the search box, so nothing is ever
+  set and silently ignored.
+- **Sort** by price, possession, home size, site size or name.
+- One tap on the map controls bottom-right: zoom, face north, terrain and city
+  buildings, globe / flat, orbit the selected project, back to the country view.
+- `/` focuses the search box, `Esc` closes whatever is open.
 
 ## How the loading works
 
@@ -196,13 +204,14 @@ layer would need to share depth with that instead of MapLibre.
 ```
 index.html            shell
 css/app.css           all styling, light + dark
-js/config.js          basemaps, LOD thresholds, camera presets, formatters
+js/config.js          basemap, LOD thresholds, camera presets, formatters
 js/geo.js             metres <-> lng/lat, footprint polygons
 js/buildings.js       procedural master plan, shared texture/material cache, dispose
 js/scene.js           three.js layer sharing MapLibre's WebGL context, lights, shadows
 js/streaming.js       viewport culling, load queue, LRU eviction, memory accounting
 js/markers.js         screen-space pin clustering, amenity hotspots
-js/ui.js              list, filters, detail panel, HUD, toasts
+js/filters.js         facets, matching, sorting, and the search-sentence parser
+js/ui.js              list, filter panel, detail panel, HUD, toasts
 js/app.js             wiring
 data/projects.json    the client registry (generated)
 tools/gen-projects.mjs  generator for the above
@@ -213,7 +222,9 @@ PROGRESS.md           build log, decisions, what is left
 ```
 
 `window.__app` exposes `{ map, scene, streaming, markers, state }` in the console for
-poking at it live.
+poking at it live. `__app.streaming.stats()` reports the current tier, asset level,
+how many models are resident and how much geometry is on the GPU - the numbers the
+old on-screen streaming panel used to show.
 
 ## Choices worth knowing
 
@@ -227,9 +238,11 @@ poking at it live.
   placing objects directly in mercator units (float32 precision falls apart there).
 - **three.js shares MapLibre's WebGL context** rather than sitting on a second canvas,
   so buildings share the map's depth buffer and camera. One context, correct occlusion.
-- **Basemaps come from Carto (day/night) and Esri (satellite)**, both usable without a
-  key. Attribution is on the map. For production, check their terms or move to a
-  self-hosted tile server.
+- **One basemap: Carto Voyager**, usable without a key. Its vector tiles carry the OSM
+  building footprints we extrude for city context, which a raster imagery layer does
+  not - that, plus a single lighting rig to tune, is why the night and satellite
+  options went. Attribution is on the map; for production, check Carto's terms or move
+  to a self-hosted tile server.
 
 ## What production needs next
 
