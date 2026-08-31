@@ -1,19 +1,23 @@
-/** Wiring: map + scene + streaming + UI. */
-import { BASEMAPS, LOD, CAMERA, WORLD, PERF } from './config.js';
+/** Wiring: map + scene + streaming + search/filters + UI. */
+import { BASEMAP, LOD, CAMERA, WORLD, PERF } from './config.js';
 import { SceneManager } from './scene.js';
 import { StreamingManager } from './streaming.js';
 import { MarkerLayer } from './markers.js';
-import { setNightLighting } from './buildings.js';
 import { offsetLngLat, siteBoxes, hitsAnySite } from './geo.js';
+import * as F from './filters.js';
 import * as UI from './ui.js';
 
 const state = {
   projects: [],
+  facets: null,
   filtered: [],
-  city: 'All cities',
+  /** Switches set in the filter panel. */
+  panel: F.blankFilters(),
+  /** What the search box was understood to mean; overrides `panel` facet by facet. */
+  parsed: { filters: F.blankFilters(), terms: [], sort: null },
   query: '',
+  sort: 'featured',
   selectedId: null,
-  basemap: 'day',
   orbiting: false,
   globe: true,
   world3d: true,
@@ -22,6 +26,9 @@ const state = {
 const $ = (s) => document.querySelector(s);
 let map, scene, streaming, markers;
 
+const effectiveFilters = () => F.mergeFilters(state.panel, state.parsed.filters);
+const effectiveSort = () => state.parsed.sort || state.sort;
+
 boot();
 
 async function boot() {
@@ -29,10 +36,11 @@ async function boot() {
   const registry = await res.json();
   state.projects = registry.projects;
   state.filtered = registry.projects;
+  state.facets = F.buildFacets(registry.projects);
 
   map = new maplibregl.Map({
     container: 'map',
-    style: BASEMAPS.day.style,
+    style: BASEMAP.style,
     center: CAMERA.overview.center,
     zoom: CAMERA.overview.zoom,
     pitch: 0,
@@ -40,35 +48,26 @@ async function boot() {
     attributionControl: { compact: true },
     maxPitch: 78,
   });
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
   map.touchZoomRotate.enableRotation();
 
   scene = new SceneManager();
   streaming = new StreamingManager(map, scene, state.projects);
   markers = new MarkerLayer(map, { onSelect: selectProject, onCluster: zoomToCluster });
 
-  streaming.onChange(UI.updateHud);
   window.__app = { map, scene, streaming, markers, state }; // debug hook
 
   map.on('style.load', () => {
     applyProjection();
     installLayers();
     applyWorld();
-    scene.setTheme(BASEMAPS[state.basemap]);
-    setNightLighting(BASEMAPS[state.basemap].theme === 'dark');
     streaming.update();
   });
 
-  let moveTimer = null;
-  map.on('move', () => {
-    if (moveTimer) return;
-    moveTimer = setTimeout(() => {
-      moveTimer = null;
-      markers.update(state.filtered, state.selectedId);
-      streaming.update();
-    }, 160);
-  });
+  map.on('move', onCameraFrame);
+  map.on('rotate', onCameraFrame);
   map.on('moveend', () => {
+    // the rAF pass is the smooth one, but a throttled or backgrounded tab can skip it
+    syncCompass();
     syncTerrain();
     scene.updateAltitudes();
     streaming.update();
@@ -81,28 +80,32 @@ async function boot() {
     scene.updateAltitudes();
     refreshBuildingCutout();
   });
-  // idle is not guaranteed - an orbiting camera or a busy render loop can starve it
-  // indefinitely - so DEM tile arrivals seat the models directly. Throttled and
-  // cheap: updateAltitudes no-ops unless an elevation moved > 25 cm.
+
+  /**
+   * One listener for both async sources we care about.
+   *
+   *  - DEM tiles: `idle` is not guaranteed - an orbiting camera or a busy render
+   *    loop can starve it indefinitely - so tile arrivals seat the models directly.
+   *    Cheap: updateAltitudes no-ops unless an elevation moved more than 25 cm.
+   *  - Basemap tiles: each arrival is a chance to find more OSM buildings sitting
+   *    under a site. Skipped mid-gesture; moveend and idle both catch up.
+   */
   let altTimer = null;
-  map.on('sourcedata', (e) => {
-    if (e.sourceId !== WORLD.dem.id) return;
-    if (altTimer) return;
-    altTimer = setTimeout(() => {
-      altTimer = null;
-      scene.updateAltitudes();
-    }, 300);
-  });
-  // tiles stream in for a while after a flight; each arrival is a chance to find
-  // more OSM buildings that sit under a site. Throttled - sourcedata is noisy.
   let cutoutTimer = null;
   map.on('sourcedata', (e) => {
-    if (!e.isSourceLoaded || e.sourceId !== buildingSourceId()) return;
-    if (cutoutTimer) return;
-    cutoutTimer = setTimeout(() => {
-      cutoutTimer = null;
-      refreshBuildingCutout();
-    }, 300);
+    if (e.sourceId === WORLD.dem.id) {
+      if (altTimer) return;
+      altTimer = setTimeout(() => {
+        altTimer = null;
+        scene.updateAltitudes();
+      }, 300);
+    } else if (e.isSourceLoaded && e.sourceId === buildingSourceId()) {
+      if (cutoutTimer) return;
+      cutoutTimer = setTimeout(() => {
+        cutoutTimer = null;
+        refreshBuildingCutout();
+      }, 300);
+    }
   });
 
   // MapLibre's `load` can sit pending while basemap tiles trickle in, so the app
@@ -124,13 +127,47 @@ async function boot() {
   applyFilter();
 }
 
+/* ------------------------------------------------------------ camera frame */
+
+/**
+ * Everything that has to keep up with a moving camera, coalesced into one animation
+ * frame and rate-limited per job. Marker clustering has to look continuous, so it
+ * runs often; the streaming decision is comparatively expensive and does not, so it
+ * runs at about 7 Hz. Both used to share one 160 ms timer, which made clustering
+ * visibly lag the map.
+ */
+let framePending = false;
+let lastMarkerPass = 0;
+let lastStreamPass = 0;
+
+function onCameraFrame() {
+  if (framePending) return;
+  framePending = true;
+  requestAnimationFrame((t) => {
+    framePending = false;
+    syncCompass();
+    if (t - lastMarkerPass > 60) {
+      lastMarkerPass = t;
+      markers.update(state.filtered, state.selectedId);
+    }
+    if (t - lastStreamPass > 150) {
+      lastStreamPass = t;
+      streaming.update();
+    }
+  });
+}
+
+function syncCompass() {
+  const needle = $('#btn-compass .needle');
+  if (needle) needle.style.transform = `rotate(${-map.getBearing()}deg)`;
+}
+
 /* ------------------------------------------------------------------ layers */
 
 /**
- * A style swap drops every source and layer we own, so this runs again after each
- * one. MapLibre also ignores addLayer (silently, no throw) until the new style
- * reports loaded, which can lag well past `style.load` - so attempt the install,
- * check whether it took, and retry if it did not.
+ * MapLibre ignores addLayer (silently, no throw) until the style reports loaded,
+ * which can lag well past `style.load` - so attempt the install, check whether it
+ * took, and retry if it did not.
  */
 function installLayers() {
   if (map.getLayer('massing') && map.getLayer('archviz-3d')) return;
@@ -196,7 +233,6 @@ const empty = () => ({ type: 'FeatureCollection', features: [] });
 /**
  * Globe view. MapLibre eases into flat mercator by itself as you zoom in, which is
  * exactly what we want: a planet at country scale, a site plan at project scale.
- * Projection lives on the style, so it has to be re-applied after every style swap.
  */
 function applyProjection() {
   if (typeof map.setProjection !== 'function') {
@@ -219,10 +255,9 @@ function toggleGlobe() {
   UI.toast(state.globe ? 'Globe view' : 'Flat map');
 }
 
-
 /* ------------------------------------------------------------------- world */
 
-/** The basemap layer that carries OSM building footprints, if this style has one. */
+/** The basemap layer that carries OSM building footprints. */
 function cityBuildingSource() {
   for (const l of map.getStyle().layers || []) {
     if (l['source-layer'] === 'building' && l.source) return l.source;
@@ -230,33 +265,26 @@ function cityBuildingSource() {
   return null;
 }
 
-// Set once per call so the sourcedata hook can match without re-parsing the style.
 let buildingSourceIdCache = null;
 function buildingSourceId() {
   if (!buildingSourceIdCache) buildingSourceIdCache = cityBuildingSource();
   return buildingSourceIdCache;
 }
 
-/**
- * Terrain, sky and extruded city buildings - the context a project sits in, the way
- * Apple and Google Maps show it. Re-applied after every style swap, like everything
- * else we own.
- */
 /** Whether the DEM mesh is currently applied. Owned by syncTerrain. */
 let terrainMeshOn = false;
 
+/**
+ * Terrain, sky and extruded city buildings - the context a project sits in, the way
+ * Apple and Google Maps show it.
+ */
 function applyWorld() {
-  const cfg = BASEMAPS[state.basemap];
-  // A style swap builds a fresh style, and terrain set imperatively does not survive
-  // it. Clear the cached flag so the syncTerrain below actually re-applies the mesh:
-  // otherwise it sees "already on", returns early, and the mesh stays gone until the
-  // zoom threshold happens to be crossed twice.
   terrainMeshOn = false;
   try {
     map.setSky({
-      'sky-color': cfg.sky.top,
-      'horizon-color': cfg.sky.bottom,
-      'fog-color': cfg.sky.bottom,
+      'sky-color': BASEMAP.sky.top,
+      'horizon-color': BASEMAP.sky.bottom,
+      'fog-color': BASEMAP.sky.bottom,
       'sky-horizon-blend': 0.6,
       'horizon-fog-blend': 0.6,
       'fog-ground-blend': 0.08,
@@ -324,7 +352,7 @@ function syncTerrain() {
  */
 function applyCityBuildings() {
   if (map.getLayer('city-buildings')) map.removeLayer('city-buildings');
-  buildingSourceIdCache = null; // a style swap can rename the source
+  buildingSourceIdCache = null;
 
   // the flat 2D footprints would z-fight with the extrusions
   for (const id of ['building', 'building-top']) {
@@ -333,9 +361,8 @@ function applyCityBuildings() {
   if (!state.world3d) return;
 
   const source = cityBuildingSource();
-  if (!source) return; // a raster basemap (satellite) carries no footprints
+  if (!source) return;
 
-  const dark = BASEMAPS[state.basemap].theme === 'dark';
   const z0 = WORLD.buildingsMinZoom;
   const z1 = WORLD.buildingFadeZoom;
 
@@ -352,33 +379,33 @@ function applyCityBuildings() {
     WORLD.maxBuildingHeight,
   ];
 
-  const layer = {
-    id: 'city-buildings',
-    type: 'fill-extrusion',
-    source,
-    'source-layer': 'building',
-    minzoom: z0,
-    paint: {
-      'fill-extrusion-color': dark ? '#28303f' : '#dedbd4',
-      // Grow and fade in over a zoom rather than appearing at full height in one
-      // frame, which reads as the city snapping into place.
-      'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], z0, 0, z1, height],
-      'fill-extrusion-base': [
-        'min',
-        ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
-        WORLD.maxBuildingHeight,
-      ],
-      'fill-extrusion-opacity': [
-        'interpolate', ['linear'], ['zoom'],
-        z0, 0,
-        z0 + (z1 - z0) * 0.5, WORLD.buildingOpacity,
-      ],
-      'fill-extrusion-vertical-gradient': true,
+  map.addLayer(
+    {
+      id: 'city-buildings',
+      type: 'fill-extrusion',
+      source,
+      'source-layer': 'building',
+      minzoom: z0,
+      paint: {
+        'fill-extrusion-color': '#dedbd4',
+        // Grow and fade in over a zoom rather than appearing at full height in one
+        // frame, which reads as the city snapping into place.
+        'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], z0, 0, z1, height],
+        'fill-extrusion-base': [
+          'min',
+          ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
+          WORLD.maxBuildingHeight,
+        ],
+        'fill-extrusion-opacity': [
+          'interpolate', ['linear'], ['zoom'],
+          z0, 0,
+          z0 + (z1 - z0) * 0.5, WORLD.buildingOpacity,
+        ],
+        'fill-extrusion-vertical-gradient': true,
+      },
     },
-  };
-
-  map.addLayer(layer, map.getLayer('site-fill') ? 'site-fill' : undefined);
-  // re-apply whatever exclusions previous tiles earned (a style swap resets filters)
+    map.getLayer('site-fill') ? 'site-fill' : undefined
+  );
   applyBuildingCutout();
 }
 
@@ -399,6 +426,9 @@ const getSiteBoxes = () => (siteBoxCache ||= siteBoxes(state.projects, 12));
 function refreshBuildingCutout() {
   if (!map || !map.getLayer('city-buildings')) return;
   if (map.getZoom() < WORLD.buildingsMinZoom - 0.6) return;
+  // Mid-gesture this would run against tiles that are still arriving, once per
+  // batch; moveend and idle both re-run it, so nothing is lost by waiting.
+  if (map.isMoving()) return;
   // Nothing can need cutting unless a project is actually in view. Without this the
   // scan walks every building in every loaded tile - thousands of feature objects,
   // repeatedly, while tiles stream - during any pan at street zoom with no project
@@ -436,8 +466,7 @@ function applyBuildingCutout() {
 
 function toggleWorld3d() {
   state.world3d = !state.world3d;
-  const btn = $('#btn-3d');
-  if (btn) btn.setAttribute('aria-pressed', String(state.world3d));
+  $('#btn-3d').setAttribute('aria-pressed', String(state.world3d));
   applyWorld();
   // the retaining skirt only exists when there is terrain, so rebuild what is resident
   scene.clear();
@@ -445,50 +474,49 @@ function toggleWorld3d() {
   UI.toast(state.world3d ? 'Terrain and city buildings on' : 'Flat basemap');
 }
 
-/* -------------------------------------------------------------------- UI */
+/* ---------------------------------------------------------------- chrome */
 
 function buildChrome() {
-  const host = $('#basemap-switch');
-  for (const [key, cfg] of Object.entries(BASEMAPS)) {
-    const b = document.createElement('button');
-    b.textContent = cfg.label;
-    b.setAttribute('aria-pressed', String(key === state.basemap));
-    b.onclick = () => setBasemap(key);
-    host.appendChild(b);
-  }
+  wireSearch();
+  wireFilterPanel();
 
-  $('#search').addEventListener('input', (e) => {
-    state.query = e.target.value.trim().toLowerCase();
+  UI.renderSort(state.sort, (id) => {
+    state.sort = id;
     applyFilter();
-  });
-  $('#search').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && state.filtered.length) selectProject(state.filtered[0].id);
   });
 
   $('#sidebar-toggle').onclick = () => {
-    $('#sidebar').classList.toggle('collapsed');
+    $('#sidebar').classList.add('collapsed');
     syncSheetClass();
   };
   $('#btn-projects').onclick = () => {
     $('#sidebar').classList.remove('collapsed');
     syncSheetClass();
   };
-  $('#hud-toggle').onclick = () => $('#hud').classList.toggle('closed');
+
+  $('#btn-zoom-in').onclick = () => map.zoomIn({ duration: 260 });
+  $('#btn-zoom-out').onclick = () => map.zoomOut({ duration: 260 });
+  $('#btn-compass').onclick = () => {
+    stopOrbit();
+    beginFlight();
+    map.easeTo({ bearing: 0, duration: 420, essential: true, freezeElevation: true });
+  };
   $('#btn-orbit').onclick = toggleOrbit;
   $('#btn-globe').onclick = toggleGlobe;
   $('#btn-3d').onclick = toggleWorld3d;
   $('#btn-reset').onclick = resetView;
 
-  // Phones open on the map, not on the sheets: the list and the streaming HUD are
-  // both one tap away, and a fully open HUD ate a quarter of a phone screen.
-  if (PERF.mobile) {
-    $('#sidebar').classList.add('collapsed');
-    $('#hud').classList.add('closed');
-  }
+  // Phones open on the map, not on a sheet covering half of it; the list is one tap
+  // away on the handle.
+  if (PERF.mobile) $('#sidebar').classList.add('collapsed');
   syncSheetClass();
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeProject();
+    if (e.key === 'Escape') {
+      if (!$('#suggest').hidden) return UI.hideSuggestions();
+      if ($('#filter-panel').classList.contains('open')) return toggleFilterPanel(false);
+      closeProject();
+    }
     if (e.key === '/' && document.activeElement !== $('#search')) {
       e.preventDefault();
       $('#search').focus();
@@ -501,20 +529,212 @@ function syncSheetClass() {
   document.body.classList.toggle('sidebar-open', !$('#sidebar').classList.contains('collapsed'));
 }
 
-function applyFilter() {
-  const q = state.query;
-  state.filtered = state.projects.filter((p) => {
-    const cityOk = state.city === 'All cities' || p.city === state.city;
-    const text = (p.name + ' ' + p.developer + ' ' + p.city + ' ' + p.locality + ' ' + p.status).toLowerCase();
-    return cityOk && (!q || text.includes(q));
+/* ---------------------------------------------------------------- search */
+
+function wireSearch() {
+  const input = $('#search');
+  let debounce = null;
+
+  const run = () => {
+    state.query = input.value;
+    state.parsed = F.parseQuery(state.query, state.facets);
+    $('#search-clear').hidden = !state.query;
+    UI.renderSuggestions(state.query, state.parsed.terms, setQuery);
+    applyFilter();
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(run, 90);
   });
-  const cities = [...new Set(state.projects.map((p) => p.city))].sort();
-  UI.renderFilters(cities, state.city, (city) => {
-    state.city = city;
+  input.addEventListener('focus', () =>
+    UI.renderSuggestions(state.query, state.parsed.terms, setQuery)
+  );
+  // Blur alone is not enough: the panel can be showing without the box ever having
+  // been focused (a chip removal re-parses and re-renders it), and a click that lands
+  // on the map should close it either way.
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('.searchwrap')) UI.hideSuggestions();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    clearTimeout(debounce);
+    run();
+    UI.hideSuggestions();
+    if (state.filtered.length) {
+      selectProject(state.filtered[0].id);
+      input.blur();
+    }
+  });
+
+  $('#search-clear').onclick = () => {
+    input.value = '';
+    run();
+    input.focus();
+  };
+}
+
+function setQuery(text) {
+  const input = $('#search');
+  input.value = text;
+  state.query = text;
+  state.parsed = F.parseQuery(text, state.facets);
+  $('#search-clear').hidden = !text;
+  UI.renderSuggestions(text, state.parsed.terms, setQuery);
+  applyFilter();
+}
+
+/* ---------------------------------------------------------- filter panel */
+
+function wireFilterPanel() {
+  $('#btn-filter').onclick = () => toggleFilterPanel();
+  $('#filter-close').onclick = () => toggleFilterPanel(false);
+  $('#filter-apply').onclick = () => toggleFilterPanel(false);
+  $('#filter-reset').onclick = () => {
+    state.panel = F.blankFilters();
+    applyFilter();
+  };
+}
+
+function toggleFilterPanel(force) {
+  const panel = $('#filter-panel');
+  const open = force === undefined ? !panel.classList.contains('open') : force;
+  if (open) {
+    $('#sidebar').classList.remove('collapsed');
+    syncSheetClass();
+    renderPanel();
+  }
+  panel.classList.toggle('open', open);
+  panel.setAttribute('aria-hidden', String(!open));
+  $('#btn-filter').setAttribute('aria-expanded', String(open));
+}
+
+/**
+ * A phrase the search box understood outranks the panel for that facet - otherwise
+ * "in pune" would silently lose to a stale chip. So touching a control the query is
+ * currently driving has to hand that facet back: the phrase is spliced out of the
+ * search text first, then the panel edit lands. Nothing is ever set and ignored.
+ */
+const TERM_FACET = {
+  unit: 'unitTypes', city: 'cities', developer: 'developers', status: 'statuses',
+  amenity: 'amenities', price: 'price', size: 'sizeMin', possession: 'possessionBy',
+};
+
+function yieldFacet(facet) {
+  const owned = state.parsed.terms.filter((t) => TERM_FACET[t.kind] === facet);
+  if (!owned.length) return;
+  let text = state.query;
+  // right to left, so an earlier span stays valid after a later one is removed
+  for (const term of owned.slice().reverse()) text = F.removeTerm(text, term);
+  const input = $('#search');
+  input.value = text;
+  state.query = text;
+  state.parsed = F.parseQuery(text, state.facets);
+  $('#search-clear').hidden = !text;
+}
+
+function renderPanel() {
+  UI.renderFilterPanel(state.facets, effectiveFilters(), {
+    onToggle(facet, value) {
+      yieldFacet(facet);
+      const list = state.panel[facet];
+      const i = list.indexOf(value);
+      if (i >= 0) list.splice(i, 1);
+      else list.push(value);
+      applyFilter();
+    },
+    onSet(key, value) {
+      yieldFacet(key);
+      state.panel[key] = state.panel[key] === value ? null : value;
+      applyFilter();
+    },
+    onPrice(min, max) {
+      yieldFacet('price');
+      state.panel.priceMin = min;
+      state.panel.priceMax = max;
+      applyFilter();
+    },
+  });
+}
+
+/**
+ * The chips under the search box, for switches set in the panel. Facets the search
+ * box has taken over are left out - their chip is already there, in accent, and two
+ * chips claiming the same facet would be a lie about which one is deciding.
+ */
+function panelChips() {
+  const parsed = state.parsed.filters;
+  const p = state.panel;
+  const out = [];
+  const list = (facet, label) => {
+    if (parsed[facet].length) return;
+    for (const v of p[facet]) out.push({ facet, value: v, label: label ? label(v) : v });
+  };
+  list('cities');
+  list('developers');
+  list('statuses');
+  list('unitTypes');
+  list('amenities', UI.amenityLabel);
+
+  if (parsed.priceMin == null && parsed.priceMax == null && (p.priceMin != null || p.priceMax != null)) {
+    const label =
+      p.priceMin != null && p.priceMax != null ? F.fmtCr(p.priceMin) + ' - ' + F.fmtCr(p.priceMax)
+      : p.priceMax != null ? 'Under ' + F.fmtCr(p.priceMax)
+      : F.fmtCr(p.priceMin) + ' and up';
+    out.push({ facet: 'price', label });
+  }
+  if (parsed.sizeMin == null && p.sizeMin != null) {
+    out.push({ facet: 'sizeMin', label: p.sizeMin.toLocaleString('en-IN') + '+ sq.ft.' });
+  }
+  if (parsed.possessionBy == null && p.possessionBy != null) {
+    out.push({ facet: 'possessionBy', label: p.possessionBy ? 'By ' + p.possessionBy : 'Ready now' });
+  }
+  return out;
+}
+
+function removePanelChip(chip) {
+  if (chip.facet === 'price') {
+    state.panel.priceMin = null;
+    state.panel.priceMax = null;
+  } else if (chip.value === undefined) {
+    state.panel[chip.facet] = null;
+  } else {
+    state.panel[chip.facet] = state.panel[chip.facet].filter((v) => v !== chip.value);
+  }
+  applyFilter();
+}
+
+function clearAll() {
+  state.panel = F.blankFilters();
+  setQuery('');
+}
+
+/* ---------------------------------------------------------------- listing */
+
+function applyFilter() {
+  const filters = effectiveFilters();
+  const sort = effectiveSort();
+  state.filtered = F.apply(state.projects, filters, sort);
+
+  UI.renderCards(state.filtered, state.selectedId, {
+    onSelect: selectProject,
+    onClearAll: clearAll,
+  });
+  UI.renderCount(state.filtered.length, state.projects.length, new Set(state.filtered.map((p) => p.city)).size);
+  UI.renderTerms(state.parsed.terms, panelChips(), {
+    onRemoveTerm: (term) => setQuery(F.removeTerm(state.query, term)),
+    onRemovePanel: removePanelChip,
+    onClearAll: clearAll,
+  });
+  UI.setFilterCount(F.activeCount(filters), state.filtered.length);
+  UI.renderSort(sort, (id) => {
+    state.sort = id;
     applyFilter();
   });
-  UI.renderCards(state.filtered, state.selectedId, selectProject);
+  if ($('#filter-panel').classList.contains('open')) renderPanel();
+
   markers.update(state.filtered, state.selectedId);
+  if (streaming) streaming.setCandidates(state.filtered);
 }
 
 /* ---------------------------------------------------------------- camera */
@@ -574,6 +794,21 @@ function levelOutWhenZoomedOut() {
   map.easeTo({ pitch: 0, padding: NO_PADDING, duration: 700, essential: true, freezeElevation: true });
 }
 
+/** First user gesture cancels the armed second phase - nobody wants a yank back. */
+function onUserGesture(fn) {
+  const events = ['mousedown', 'wheel', 'touchstart'];
+  const off = () => events.forEach((e) => map.off(e, fn));
+  events.forEach((e) => map.once(e, fn));
+  return off;
+}
+
+/**
+ * On a phone the detail sheet covers the lower half, so the subject has to land in
+ * the strip of map left visible above it - without padding it would sit dead centre,
+ * behind the sheet. The top padding keeps it clear of the top bar.
+ */
+const phonePad = () => ({ top: 80, bottom: Math.round(innerHeight * 0.5), left: 0, right: 0 });
+
 /**
  * Fly to a project. With terrain on, a single flight straight into a pitched target
  * re-steers elevation every frame while the DEM tiles are still arriving, and lands
@@ -586,21 +821,6 @@ function levelOutWhenZoomedOut() {
  * phases land exactly. `freezeElevation` on every flight keeps the animation from
  * being steered mid-air; it is what makes the landing deterministic.
  */
-/** First user gesture cancels the armed second phase - nobody wants a yank back. */
-function onUserGesture(fn) {
-  const events = ['mousedown', 'wheel', 'touchstart'];
-  const off = () => events.forEach((e) => map.off(e, fn));
-  events.forEach((e) => map.once(e, fn));
-  return off;
-}
-
-/**
- * On a phone the detail sheet covers the lower half, so the subject has to land in
- * the strip of map left visible above it - without padding it would sit dead centre,
- * behind the sheet. The top padding keeps it clear of the two-row top bar.
- */
-const phonePad = () => ({ top: 90, bottom: Math.round(innerHeight * 0.46), left: 0, right: 0 });
-
 function flyToProject(p, wide) {
   const seq = beginFlight();
   const target = {
@@ -609,7 +829,7 @@ function flyToProject(p, wide) {
     pitch: CAMERA.project.pitch,
     bearing: (p.plan.site.rot * 180) / Math.PI + 28,
   };
-  const pad = wide ? { right: 400, left: 350, top: 0, bottom: 0 } : phonePad();
+  const pad = wide ? { right: 410, left: 360, top: 0, bottom: 0 } : phonePad();
 
   let demKnown = false;
   try {
@@ -648,6 +868,7 @@ function selectProject(id) {
   if (!p) return;
   state.selectedId = id;
   streaming.select(id);
+  scene.setShadowFocus(id);
 
   // on a phone the list is a sheet over the map - selecting from it must get it
   // out of the way so the flight and the detail sheet have the screen
@@ -655,16 +876,18 @@ function selectProject(id) {
     $('#sidebar').classList.add('collapsed');
     syncSheetClass();
   }
+  toggleFilterPanel(false);
 
-  flyToProject(p, window.innerWidth > 860);
+  flyToProject(p, window.innerWidth > 900);
 
   UI.openDetail(p, {
     onClose: closeProject,
     onAmenity: flyToAmenity,
     onImmersive: openImmersive,
     onShare: share,
+    onOrbit: () => toggleOrbit(),
   });
-  UI.renderCards(state.filtered, id, selectProject);
+  UI.markSelectedCard(id);
   markers.update(state.filtered, id);
 }
 
@@ -673,6 +896,7 @@ function closeProject() {
   state.selectedId = null;
   cancelPendingFlight();
   streaming.select(null);
+  scene.setShadowFocus(null);
   stopOrbit();
   UI.closeDetail();
   markers.clearAmenities();
@@ -681,7 +905,8 @@ function closeProject() {
     beginFlight();
     map.easeTo({ padding: NO_PADDING, duration: 500, essential: true, freezeElevation: true });
   }
-  UI.renderCards(state.filtered, null, selectProject);
+  UI.markSelectedCard(null);
+  markers.update(state.filtered, null);
 }
 
 function syncAmenities() {
@@ -704,12 +929,12 @@ function flyToAmenity(project, amenity) {
     essential: true,
     freezeElevation: true,
   };
-  if (window.innerWidth <= 860) opts.padding = phonePad();
+  if (window.innerWidth <= 900) opts.padding = phonePad();
   map.flyTo(opts);
   UI.toast(amenity.name + ' - ' + amenity.blurb);
 }
 
-function zoomToCluster(center, members) {
+function zoomToCluster(center) {
   beginFlight();
   map.flyTo({ center, zoom: Math.min(map.getZoom() + 2.6, 15), duration: 900, essential: true, freezeElevation: true });
 }
@@ -756,16 +981,4 @@ function stopOrbit() {
   $('#btn-orbit').setAttribute('aria-pressed', 'false');
   if (orbitRaf) cancelAnimationFrame(orbitRaf);
   orbitRaf = null;
-}
-
-/* --------------------------------------------------------------- basemap */
-
-function setBasemap(key) {
-  if (key === state.basemap) return;
-  state.basemap = key;
-  for (const b of $('#basemap-switch').children) {
-    b.setAttribute('aria-pressed', String(b.textContent === BASEMAPS[key].label));
-  }
-  UI.setTheme(BASEMAPS[key].theme);
-  map.setStyle(BASEMAPS[key].style);
 }

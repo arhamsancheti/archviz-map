@@ -1,15 +1,21 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Terrace - 3D project map</title>
+<meta name="theme-color" content="#eef1f5" />
+<title>VU - 3D project map</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet" />
 <link href="css/app.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
+
+<!-- deferred so the boot screen paints before the map engine parses -->
+<script defer src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -18,6 +24,8 @@
   }
 }
 </script>
+<!-- three is needed the moment a project streams; fetch it alongside the map engine -->
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" />
 </head>
 <body>
 
@@ -25,79 +33,127 @@
 
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark"></span>
-    <span class="brand-name">Terrace</span>
+    <svg class="logo" viewBox="0 0 32 32" role="img" aria-label="VU">
+      <rect class="tile" width="32" height="32" rx="9.5" />
+      <!-- A solid V sitting inside an open U: reads as the monogram, and as a lens -->
+      <path class="mark" d="M9 9.5v5.5a7 7 0 0 0 14 0V9.5" />
+      <path class="wedge" d="M12.2 9.5h7.6L16 16.8z" />
+    </svg>
+    <span class="brand-name">VU</span>
     <span class="brand-sub">3D project map</span>
   </div>
 
-  <label class="search">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-    <input id="search" type="search" placeholder="Search projects, builders or cities" autocomplete="off" />
-  </label>
+  <div class="searchwrap">
+    <label class="search" for="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="search" type="search" autocomplete="off" spellcheck="false"
+             placeholder="Try &ldquo;3 BHK under 1.5 Cr in Pune with a pool&rdquo;"
+             aria-label="Search projects" aria-describedby="suggest" />
+      <button class="search-clear" id="search-clear" type="button" aria-label="Clear search" hidden>
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <kbd class="search-key">/</kbd>
+    </label>
+    <div class="suggest" id="suggest" hidden></div>
+  </div>
 
-  <div class="segmented" id="basemap-switch" role="group" aria-label="Base map"></div>
 </header>
 
 <aside class="sidebar" id="sidebar">
+  <div class="sheet-grip" aria-hidden="true"></div>
+
   <div class="sidebar-head">
-    <div>
+    <div class="sidebar-title">
       <h2 id="list-count">10 projects</h2>
-      <p class="muted">Across 6 cities</p>
+      <p class="muted" id="list-sub">Across 7 cities</p>
     </div>
-    <button class="icon-btn" id="sidebar-toggle" title="Collapse list" aria-label="Collapse list">
+    <button class="icon-btn" id="sidebar-toggle" title="Hide the list" aria-label="Hide the list">
       <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
     </button>
   </div>
-  <div class="filters" id="filters"></div>
+
+  <div class="term-rail" id="terms"></div>
+
+  <div class="sortbar">
+    <button class="filter-btn" id="btn-filter" aria-expanded="false">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
+      <span>Filters</span>
+      <span class="badge" id="filter-badge" hidden>0</span>
+    </button>
+    <div class="select">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8h13"/><path d="M7 14h9"/><path d="M7 20h5"/><path d="M3 7l1.5-2L6 7"/></svg>
+      <select id="sort" aria-label="Sort projects"></select>
+      <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+    </div>
+  </div>
+
   <div class="cards" id="cards"></div>
+
+  <section class="filter-panel" id="filter-panel" aria-hidden="true">
+    <div class="filter-head">
+      <h2>Filters</h2>
+      <button class="icon-btn" id="filter-close" aria-label="Close filters">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="filter-body" id="filter-body"></div>
+    <div class="filter-foot">
+      <button class="btn ghost wide" id="filter-reset">Reset</button>
+      <button class="btn primary" id="filter-apply">Show 10 projects</button>
+    </div>
+  </section>
 </aside>
 
-<button class="fab" id="btn-projects" aria-label="Show project list">
+<button class="fab" id="btn-projects" aria-label="Show the project list">
   <svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+  <span class="fab-label">Projects</span>
+  <span class="fab-count" id="fab-count">10</span>
 </button>
 
 <section class="detail" id="detail" aria-hidden="true"></section>
 
-<div class="hud" id="hud">
-  <button class="hud-head" id="hud-toggle">
-    <span class="dot"></span>
-    <span>Streaming</span>
-    <span class="hud-tier" id="hud-tier">pin</span>
-  </button>
-  <div class="hud-body" id="hud-body">
-    <div class="hud-row"><span>In view</span><b id="hud-visible">0</b></div>
-    <div class="hud-row"><span>3D models resident</span><b id="hud-resident">0</b></div>
-    <div class="hud-row"><span>Loading</span><b id="hud-queued">0</b></div>
-    <div class="hud-row"><span>GPU geometry</span><b id="hud-bytes">0 MB</b></div>
-    <div class="ladder" id="ladder">
-      <div class="rung" data-tier="pin"><b>Pin</b><span>registry only</span></div>
-      <div class="rung" data-tier="massing"><b>Massing</b><span>GPU extrusion, no fetch</span></div>
-      <div class="rung" data-tier="model"><b>Model</b><span>streamed, on-screen only</span></div>
-    </div>
+<div class="map-ui" id="map-ui">
+  <div class="ctrl-group">
+    <button class="ctrl" id="btn-zoom-in" data-tip="Zoom in" aria-label="Zoom in">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button class="ctrl" id="btn-zoom-out" data-tip="Zoom out" aria-label="Zoom out">
+      <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+    </button>
   </div>
-</div>
 
-<div class="map-tools">
-  <button class="tool" id="btn-3d" title="Terrain and city buildings" aria-pressed="true">
-    <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M3 21h18"/><path d="M14 7h7v7"/></svg>
+  <button class="ctrl compass" id="btn-compass" data-tip="Face north" aria-label="Reset bearing to north">
+    <svg viewBox="0 0 24 24" class="needle"><path d="M12 3.5l4 13-4-2.6-4 2.6z" fill="currentColor" stroke="none"/></svg>
   </button>
-  <button class="tool" id="btn-globe" title="Globe / flat map" aria-pressed="true">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>
-  </button>
-  <button class="tool" id="btn-orbit" title="Orbit the selected project">
-    <svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 1 1-5.7 2.3"/><path d="M6 3v4h4"/></svg>
-  </button>
-  <button class="tool" id="btn-reset" title="Back to India view">
-    <svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8"/><path d="M6 10v10h12V10"/></svg>
-  </button>
+
+  <div class="ctrl-group">
+    <button class="ctrl" id="btn-3d" data-tip="Terrain &amp; city buildings" aria-pressed="true" aria-label="Terrain and city buildings">
+      <svg viewBox="0 0 24 24"><path d="M3 20l6-9 4 5 3-4 5 8z"/><path d="M2 20h20"/></svg>
+    </button>
+    <button class="ctrl" id="btn-globe" data-tip="Globe / flat map" aria-pressed="true" aria-label="Toggle globe view">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>
+    </button>
+    <button class="ctrl" id="btn-orbit" data-tip="Orbit the project" aria-pressed="false" aria-label="Orbit the selected project">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><ellipse cx="12" cy="12" rx="9.5" ry="4.4" transform="rotate(-28 12 12)"/></svg>
+    </button>
+    <button class="ctrl" id="btn-reset" data-tip="Back to India" aria-label="Back to the country view">
+      <svg viewBox="0 0 24 24"><path d="M4 11.5L12 5l8 6.5"/><path d="M6.5 10.5V19h11v-8.5"/><path d="M10 19v-4.5h4V19"/></svg>
+    </button>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
 
 <div class="boot" id="boot">
   <div class="boot-inner">
-    <span class="brand-mark big"></span>
+    <svg class="logo big" viewBox="0 0 32 32" role="img" aria-label="VU">
+      <rect class="tile" width="32" height="32" rx="9.5" />
+      <!-- A solid V sitting inside an open U: reads as the monogram, and as a lens -->
+      <path class="mark" d="M9 9.5v5.5a7 7 0 0 0 14 0V9.5" />
+      <path class="wedge" d="M12.2 9.5h7.6L16 16.8z" />
+    </svg>
     <p>Loading the project map</p>
+    <div class="boot-bar"><i></i></div>
   </div>
 </div>
 
