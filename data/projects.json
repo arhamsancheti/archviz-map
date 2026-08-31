@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-08-28T18:02:40.219Z",
+  "generated": "2026-08-31T17:01:03.196Z",
   "projects": [
     {
       "id": "lakeside-habitat",
@@ -17,22 +17,128 @@
       "accent": "#4FA3FF",
       "price": {
         "from": 21500000,
+        "to": 57100000,
+        "perSqft": 16750,
         "currency": "INR"
       },
       "facts": {
         "possession": "Handed over",
+        "possessionKey": "0000-00",
+        "possessionYear": 0,
         "landArea": "102 acres",
+        "acres": 102,
         "towers": 9,
         "units": 3100,
         "floors": "G+24",
+        "floorsMax": 24,
         "openSpace": "80%",
+        "openSpacePct": 80,
         "unitTypes": [
           "2 BHK",
           "3 BHK",
           "4 BHK"
         ],
         "sizeRange": "1,285 - 3,410 sq.ft.",
-        "rera": "PRM/KA/RERA/1251/446/PR/171015/000534"
+        "sizeFrom": 1285,
+        "sizeTo": 3410,
+        "rera": "PRM/KA/RERA/1251/446/PR/171015/000534",
+        "progress": 100,
+        "unitMix": [
+          {
+            "type": "2 BHK",
+            "sizeFrom": 1285,
+            "sizeTo": 1993,
+            "priceFrom": 21500000,
+            "priceTo": 33400000,
+            "total": 1087,
+            "available": 29
+          },
+          {
+            "type": "3 BHK",
+            "sizeFrom": 1993,
+            "sizeTo": 2702,
+            "priceFrom": 33400000,
+            "priceTo": 45300000,
+            "total": 1239,
+            "available": 62
+          },
+          {
+            "type": "4 BHK",
+            "sizeFrom": 2702,
+            "sizeTo": 3410,
+            "priceFrom": 45300000,
+            "priceTo": 57100000,
+            "total": 943,
+            "available": 59
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Whitefield Tech Park",
+            "kind": "work",
+            "km": 3.4,
+            "mins": 10
+          },
+          {
+            "name": "Outer Ring Road",
+            "kind": "road",
+            "km": 4.2,
+            "mins": 10
+          },
+          {
+            "name": "Greenwood High School",
+            "kind": "school",
+            "km": 6.1,
+            "mins": 14
+          },
+          {
+            "name": "Manipal Hospital",
+            "kind": "health",
+            "km": 8.2,
+            "mins": 22
+          },
+          {
+            "name": "Kempegowda Airport",
+            "kind": "airport",
+            "km": 20.1,
+            "mins": 39
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Shear-wall RCC structure, wind-tunnel tested"
+          },
+          {
+            "label": "Flooring",
+            "value": "Imported marble in living, engineered wood in bedrooms"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Modular island kitchen with built-in appliances"
+          },
+          {
+            "label": "Security",
+            "value": "Face-recognition lobby entry and perimeter CCTV"
+          },
+          {
+            "label": "Parking",
+            "value": "Two basement levels, one bay per residence"
+          },
+          {
+            "label": "Power and water",
+            "value": "DG backup for common areas, dual-plumbed recycled water"
+          },
+          {
+            "label": "Lifts",
+            "value": "High-speed passenger lifts with auto rescue"
+          }
+        ],
+        "highlights": [
+          "IGBC Gold pre-certified",
+          "A deck or balcony with every bedroom",
+          "Corner residences with three-side ventilation"
+        ]
       },
       "immersive": {
         "available": true,
@@ -229,7 +335,9 @@
           "url": null,
           "bytes": 5299853
         }
-      }
+      },
+      "images": [],
+      "seed": 1011
     },
     {
       "id": "cornerstone-utopia",
@@ -246,22 +354,128 @@
       "accent": "#7C5CFF",
       "price": {
         "from": 9800000,
+        "to": 27200000,
+        "perSqft": 13900,
         "currency": "INR"
       },
       "facts": {
         "possession": "Dec 2027",
+        "possessionKey": "2027-12",
+        "possessionYear": 2027,
         "landArea": "47 acres",
+        "acres": 47,
         "towers": 7,
         "units": 2400,
         "floors": "G+31",
+        "floorsMax": 31,
         "openSpace": "75%",
+        "openSpacePct": 75,
         "unitTypes": [
           "1 BHK",
           "2 BHK",
           "3 BHK"
         ],
         "sizeRange": "705 - 1,960 sq.ft.",
-        "rera": "PRM/KA/RERA/1251/446/PR/210330/003926"
+        "sizeFrom": 705,
+        "sizeTo": 1960,
+        "rera": "PRM/KA/RERA/1251/446/PR/210330/003926",
+        "progress": 72,
+        "unitMix": [
+          {
+            "type": "1 BHK",
+            "sizeFrom": 705,
+            "sizeTo": 1123,
+            "priceFrom": 9800000,
+            "priceTo": 15600000,
+            "total": 628,
+            "available": 409
+          },
+          {
+            "type": "2 BHK",
+            "sizeFrom": 1123,
+            "sizeTo": 1542,
+            "priceFrom": 15600000,
+            "priceTo": 21400000,
+            "total": 841,
+            "available": 439
+          },
+          {
+            "type": "3 BHK",
+            "sizeFrom": 1542,
+            "sizeTo": 1960,
+            "priceFrom": 21400000,
+            "priceTo": 27200000,
+            "total": 776,
+            "available": 420
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Whitefield Metro",
+            "kind": "metro",
+            "km": 2.5,
+            "mins": 8
+          },
+          {
+            "name": "Phoenix Marketcity",
+            "kind": "retail",
+            "km": 2.9,
+            "mins": 8
+          },
+          {
+            "name": "Greenwood High School",
+            "kind": "school",
+            "km": 8.9,
+            "mins": 27
+          },
+          {
+            "name": "Outer Ring Road",
+            "kind": "road",
+            "km": 8.9,
+            "mins": 24
+          },
+          {
+            "name": "Kempegowda Airport",
+            "kind": "airport",
+            "km": 37.9,
+            "mins": 75
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Post-tensioned slabs on an RCC frame"
+          },
+          {
+            "label": "Flooring",
+            "value": "Italian marble in living, laminate wood in bedrooms"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Modular units, quartz counter, hob and chimney"
+          },
+          {
+            "label": "Security",
+            "value": "Three-tier access control with video door phone"
+          },
+          {
+            "label": "Parking",
+            "value": "Podium parking with EV charging on every level"
+          },
+          {
+            "label": "Power and water",
+            "value": "100% DG backup, STP and rainwater harvesting"
+          },
+          {
+            "label": "Lifts",
+            "value": "Destination-control lifts, two service cars per tower"
+          }
+        ],
+        "highlights": [
+          "A deck or balcony with every bedroom",
+          "Double-height lobbies in every tower",
+          "Zero-waste-to-landfill operations"
+        ]
       },
       "immersive": {
         "available": true,
@@ -434,7 +648,9 @@
           "url": null,
           "bytes": 10051974
         }
-      }
+      },
+      "images": [],
+      "seed": 2027
     },
     {
       "id": "dream-acres",
@@ -451,22 +667,128 @@
       "accent": "#2FBF9A",
       "price": {
         "from": 8200000,
+        "to": 19200000,
+        "perSqft": 12700,
         "currency": "INR"
       },
       "facts": {
         "possession": "Handed over",
+        "possessionKey": "0000-00",
+        "possessionYear": 0,
         "landArea": "81 acres",
+        "acres": 81,
         "towers": 8,
         "units": 2900,
         "floors": "G+19",
+        "floorsMax": 19,
         "openSpace": "82%",
+        "openSpacePct": 82,
         "unitTypes": [
           "1 BHK",
           "2 BHK",
           "3 BHK"
         ],
         "sizeRange": "645 - 1,510 sq.ft.",
-        "rera": "PRM/KA/RERA/1251/446/PR/171014/000321"
+        "sizeFrom": 645,
+        "sizeTo": 1510,
+        "rera": "PRM/KA/RERA/1251/446/PR/171014/000321",
+        "progress": 100,
+        "unitMix": [
+          {
+            "type": "1 BHK",
+            "sizeFrom": 645,
+            "sizeTo": 933,
+            "priceFrom": 8200000,
+            "priceTo": 11800000,
+            "total": 943,
+            "available": 116
+          },
+          {
+            "type": "2 BHK",
+            "sizeFrom": 933,
+            "sizeTo": 1222,
+            "priceFrom": 11800000,
+            "priceTo": 15500000,
+            "total": 916,
+            "available": 63
+          },
+          {
+            "type": "3 BHK",
+            "sizeFrom": 1222,
+            "sizeTo": 1510,
+            "priceFrom": 15500000,
+            "priceTo": 19200000,
+            "total": 1126,
+            "available": 122
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Whitefield Metro",
+            "kind": "metro",
+            "km": 3.5,
+            "mins": 10
+          },
+          {
+            "name": "Greenwood High School",
+            "kind": "school",
+            "km": 4.6,
+            "mins": 11
+          },
+          {
+            "name": "Manipal Hospital",
+            "kind": "health",
+            "km": 7.2,
+            "mins": 21
+          },
+          {
+            "name": "Phoenix Marketcity",
+            "kind": "retail",
+            "km": 7.6,
+            "mins": 23
+          },
+          {
+            "name": "Kempegowda Airport",
+            "kind": "airport",
+            "km": 36.9,
+            "mins": 88
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Post-tensioned slabs on an RCC frame"
+          },
+          {
+            "label": "Flooring",
+            "value": "Large-format vitrified tile throughout"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Modular units, quartz counter, hob and chimney"
+          },
+          {
+            "label": "Security",
+            "value": "Boom barriers, CCTV and a 24x7 command centre"
+          },
+          {
+            "label": "Parking",
+            "value": "Podium parking with EV charging on every level"
+          },
+          {
+            "label": "Power and water",
+            "value": "DG backup for common areas, dual-plumbed recycled water"
+          },
+          {
+            "label": "Lifts",
+            "value": "High-speed passenger lifts with auto rescue"
+          }
+        ],
+        "highlights": [
+          "Full-height glazing in the living rooms",
+          "Double-height lobbies in every tower",
+          "IGBC Gold pre-certified"
+        ]
       },
       "immersive": {
         "available": true,
@@ -651,7 +973,9 @@
           "url": null,
           "bytes": 8187105
         }
-      }
+      },
+      "images": [],
+      "seed": 3141
     },
     {
       "id": "amara-heights",
@@ -668,21 +992,118 @@
       "accent": "#FF8A4C",
       "price": {
         "from": 13400000,
+        "to": 26200000,
+        "perSqft": 15050,
         "currency": "INR"
       },
       "facts": {
         "possession": "Jun 2028",
+        "possessionKey": "2028-06",
+        "possessionYear": 2028,
         "landArea": "38 acres",
+        "acres": 38,
         "towers": 6,
         "units": 2100,
         "floors": "G+44",
+        "floorsMax": 44,
         "openSpace": "70%",
+        "openSpacePct": 70,
         "unitTypes": [
           "2 BHK",
           "3 BHK"
         ],
         "sizeRange": "890 - 1,740 sq.ft.",
-        "rera": "P51700018261"
+        "sizeFrom": 890,
+        "sizeTo": 1740,
+        "rera": "P51700018261",
+        "progress": 62,
+        "unitMix": [
+          {
+            "type": "2 BHK",
+            "sizeFrom": 890,
+            "sizeTo": 1315,
+            "priceFrom": 13400000,
+            "priceTo": 19800000,
+            "total": 1218,
+            "available": 736
+          },
+          {
+            "type": "3 BHK",
+            "sizeFrom": 1315,
+            "sizeTo": 1740,
+            "priceFrom": 19800000,
+            "priceTo": 26200000,
+            "total": 1074,
+            "available": 426
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Airoli Knowledge Park",
+            "kind": "work",
+            "km": 2.1,
+            "mins": 6
+          },
+          {
+            "name": "Eastern Express Highway",
+            "kind": "road",
+            "km": 2.4,
+            "mins": 7
+          },
+          {
+            "name": "Thane Station",
+            "kind": "metro",
+            "km": 3.2,
+            "mins": 7
+          },
+          {
+            "name": "Hiranandani Hospital",
+            "kind": "health",
+            "km": 4.1,
+            "mins": 8
+          },
+          {
+            "name": "Viviana Mall",
+            "kind": "retail",
+            "km": 9,
+            "mins": 19
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Post-tensioned slabs on an RCC frame"
+          },
+          {
+            "label": "Flooring",
+            "value": "Imported marble in living, engineered wood in bedrooms"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Granite counter with a designer backsplash"
+          },
+          {
+            "label": "Security",
+            "value": "Face-recognition lobby entry and perimeter CCTV"
+          },
+          {
+            "label": "Parking",
+            "value": "Two basement levels, one bay per residence"
+          },
+          {
+            "label": "Power and water",
+            "value": "100% DG backup, STP and rainwater harvesting"
+          },
+          {
+            "label": "Lifts",
+            "value": "Destination-control lifts, two service cars per tower"
+          }
+        ],
+        "highlights": [
+          "A deck or balcony with every bedroom",
+          "IGBC Gold pre-certified",
+          "Zero-waste-to-landfill operations"
+        ]
       },
       "immersive": {
         "available": true,
@@ -843,7 +1264,9 @@
           "url": null,
           "bytes": 4525220
         }
-      }
+      },
+      "images": [],
+      "seed": 4222
     },
     {
       "id": "sunrise-bay",
@@ -860,22 +1283,128 @@
       "accent": "#FFC24B",
       "price": {
         "from": 11200000,
+        "to": 28900000,
+        "perSqft": 11650,
         "currency": "INR"
       },
       "facts": {
         "possession": "Mar 2029",
+        "possessionKey": "2029-03",
+        "possessionYear": 2029,
         "landArea": "24 acres",
+        "acres": 24,
         "towers": 5,
         "units": 1450,
         "floors": "G+36",
+        "floorsMax": 36,
         "openSpace": "68%",
+        "openSpacePct": 68,
         "unitTypes": [
           "2 BHK",
           "3 BHK",
           "4 BHK"
         ],
         "sizeRange": "960 - 2,480 sq.ft.",
-        "rera": "P52000047812"
+        "sizeFrom": 960,
+        "sizeTo": 2480,
+        "rera": "P52000047812",
+        "progress": 4,
+        "unitMix": [
+          {
+            "type": "2 BHK",
+            "sizeFrom": 960,
+            "sizeTo": 1467,
+            "priceFrom": 11200000,
+            "priceTo": 17100000,
+            "total": 437,
+            "available": 134
+          },
+          {
+            "type": "3 BHK",
+            "sizeFrom": 1467,
+            "sizeTo": 1973,
+            "priceFrom": 17100000,
+            "priceTo": 23000000,
+            "total": 553,
+            "available": 154
+          },
+          {
+            "type": "4 BHK",
+            "sizeFrom": 1973,
+            "sizeTo": 2480,
+            "priceFrom": 23000000,
+            "priceTo": 28900000,
+            "total": 542,
+            "available": 297
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Ulwe Coastal Road",
+            "kind": "road",
+            "km": 2.6,
+            "mins": 6
+          },
+          {
+            "name": "Apollo Hospital",
+            "kind": "health",
+            "km": 5.8,
+            "mins": 18
+          },
+          {
+            "name": "Ryan International",
+            "kind": "school",
+            "km": 6.4,
+            "mins": 14
+          },
+          {
+            "name": "Seawoods Grand Central",
+            "kind": "retail",
+            "km": 6.8,
+            "mins": 20
+          },
+          {
+            "name": "Belapur CBD",
+            "kind": "work",
+            "km": 7.8,
+            "mins": 17
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Shear-wall RCC structure, wind-tunnel tested"
+          },
+          {
+            "label": "Flooring",
+            "value": "Large-format vitrified tile throughout"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Granite counter with a designer backsplash"
+          },
+          {
+            "label": "Security",
+            "value": "Three-tier access control with video door phone"
+          },
+          {
+            "label": "Parking",
+            "value": "Stacked mechanical parking, two bays per residence"
+          },
+          {
+            "label": "Power and water",
+            "value": "Full DG backup with a solar-assisted common area"
+          },
+          {
+            "label": "Lifts",
+            "value": "Four lifts per core including a service lift"
+          }
+        ],
+        "highlights": [
+          "Landscaped by an international design studio",
+          "Zero-waste-to-landfill operations",
+          "Full-height glazing in the living rooms"
+        ]
       },
       "immersive": {
         "available": true,
@@ -1010,7 +1539,9 @@
           "url": null,
           "bytes": 7040833
         }
-      }
+      },
+      "images": [],
+      "seed": 5309
     },
     {
       "id": "riverine-park",
@@ -1027,21 +1558,118 @@
       "accent": "#5AD1E8",
       "price": {
         "from": 10400000,
+        "to": 21500000,
+        "perSqft": 12700,
         "currency": "INR"
       },
       "facts": {
         "possession": "Sep 2027",
+        "possessionKey": "2027-09",
+        "possessionYear": 2027,
         "landArea": "33 acres",
+        "acres": 33,
         "towers": 6,
         "units": 1780,
         "floors": "G+30",
+        "floorsMax": 30,
         "openSpace": "73%",
+        "openSpacePct": 73,
         "unitTypes": [
           "2 BHK",
           "3 BHK"
         ],
         "sizeRange": "820 - 1,690 sq.ft.",
-        "rera": "P52100051204"
+        "sizeFrom": 820,
+        "sizeTo": 1690,
+        "rera": "P52100051204",
+        "progress": 48,
+        "unitMix": [
+          {
+            "type": "2 BHK",
+            "sizeFrom": 820,
+            "sizeTo": 1255,
+            "priceFrom": 10400000,
+            "priceTo": 15900000,
+            "total": 938,
+            "available": 287
+          },
+          {
+            "type": "3 BHK",
+            "sizeFrom": 1255,
+            "sizeTo": 1690,
+            "priceFrom": 15900000,
+            "priceTo": 21500000,
+            "total": 777,
+            "available": 511
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Kharadi Metro",
+            "kind": "metro",
+            "km": 2.1,
+            "mins": 5
+          },
+          {
+            "name": "Phoenix Mall of the Millennium",
+            "kind": "retail",
+            "km": 2.6,
+            "mins": 7
+          },
+          {
+            "name": "Columbia Asia Hospital",
+            "kind": "health",
+            "km": 5.2,
+            "mins": 15
+          },
+          {
+            "name": "The Orchid School",
+            "kind": "school",
+            "km": 7.7,
+            "mins": 15
+          },
+          {
+            "name": "Pune Airport",
+            "kind": "airport",
+            "km": 39.4,
+            "mins": 96
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "RCC framed, seismic zone III compliant"
+          },
+          {
+            "label": "Flooring",
+            "value": "Italian marble in living, laminate wood in bedrooms"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Granite counter with a designer backsplash"
+          },
+          {
+            "label": "Security",
+            "value": "Face-recognition lobby entry and perimeter CCTV"
+          },
+          {
+            "label": "Parking",
+            "value": "Podium parking with EV charging on every level"
+          },
+          {
+            "label": "Power and water",
+            "value": "100% DG backup, STP and rainwater harvesting"
+          },
+          {
+            "label": "Lifts",
+            "value": "Destination-control lifts, two service cars per tower"
+          }
+        ],
+        "highlights": [
+          "Double-height lobbies in every tower",
+          "A deck or balcony with every bedroom",
+          "Full-height glazing in the living rooms"
+        ]
       },
       "immersive": {
         "available": true,
@@ -1195,7 +1823,9 @@
           "url": null,
           "bytes": 8118089
         }
-      }
+      },
+      "images": [],
+      "seed": 6180
     },
     {
       "id": "bhooja-one",
@@ -1212,21 +1842,118 @@
       "accent": "#C77DFF",
       "price": {
         "from": 18600000,
+        "to": 35400000,
+        "perSqft": 8750,
         "currency": "INR"
       },
       "facts": {
         "possession": "Handed over",
+        "possessionKey": "0000-00",
+        "possessionYear": 0,
         "landArea": "29 acres",
+        "acres": 29,
         "towers": 4,
         "units": 1120,
         "floors": "G+42",
+        "floorsMax": 42,
         "openSpace": "65%",
+        "openSpacePct": 65,
         "unitTypes": [
           "3 BHK",
           "4 BHK"
         ],
         "sizeRange": "2,120 - 4,050 sq.ft.",
-        "rera": "P02400002381"
+        "sizeFrom": 2120,
+        "sizeTo": 4050,
+        "rera": "P02400002381",
+        "progress": 100,
+        "unitMix": [
+          {
+            "type": "3 BHK",
+            "sizeFrom": 2120,
+            "sizeTo": 3085,
+            "priceFrom": 18600000,
+            "priceTo": 27000000,
+            "total": 669,
+            "available": 81
+          },
+          {
+            "type": "4 BHK",
+            "sizeFrom": 3085,
+            "sizeTo": 4050,
+            "priceFrom": 27000000,
+            "priceTo": 35400000,
+            "total": 487,
+            "available": 19
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Oakridge International",
+            "kind": "school",
+            "km": 1.9,
+            "mins": 6
+          },
+          {
+            "name": "HITEC City",
+            "kind": "work",
+            "km": 2,
+            "mins": 5
+          },
+          {
+            "name": "Continental Hospital",
+            "kind": "health",
+            "km": 2.1,
+            "mins": 6
+          },
+          {
+            "name": "Outer Ring Road",
+            "kind": "road",
+            "km": 2.7,
+            "mins": 8
+          },
+          {
+            "name": "Inorbit Mall",
+            "kind": "retail",
+            "km": 8,
+            "mins": 21
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Post-tensioned slabs on an RCC frame"
+          },
+          {
+            "label": "Flooring",
+            "value": "Imported marble in living, engineered wood in bedrooms"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Modular units, quartz counter, hob and chimney"
+          },
+          {
+            "label": "Security",
+            "value": "Face-recognition lobby entry and perimeter CCTV"
+          },
+          {
+            "label": "Parking",
+            "value": "Two basement levels, one bay per residence"
+          },
+          {
+            "label": "Power and water",
+            "value": "DG backup for common areas, dual-plumbed recycled water"
+          },
+          {
+            "label": "Lifts",
+            "value": "Destination-control lifts, two service cars per tower"
+          }
+        ],
+        "highlights": [
+          "Vaastu-compliant layouts in every configuration",
+          "Full-height glazing in the living rooms",
+          "Corner residences with three-side ventilation"
+        ]
       },
       "immersive": {
         "available": true,
@@ -1349,7 +2076,9 @@
           "url": null,
           "bytes": 4028855
         }
-      }
+      },
+      "images": [],
+      "seed": 7011
     },
     {
       "id": "camellia-court",
@@ -1366,22 +2095,128 @@
       "accent": "#E8C97D",
       "price": {
         "from": 78000000,
+        "to": 174400000,
+        "perSqft": 10700,
         "currency": "INR"
       },
       "facts": {
         "possession": "Handed over",
+        "possessionKey": "0000-00",
+        "possessionYear": 0,
         "landArea": "20 acres",
+        "acres": 20,
         "towers": 5,
         "units": 429,
         "floors": "G+38",
+        "floorsMax": 38,
         "openSpace": "78%",
+        "openSpacePct": 78,
         "unitTypes": [
           "4 BHK",
           "5 BHK",
           "Penthouse"
         ],
         "sizeRange": "7,300 - 16,300 sq.ft.",
-        "rera": "GGM/2018/324"
+        "sizeFrom": 7300,
+        "sizeTo": 16300,
+        "rera": "GGM/2018/324",
+        "progress": 100,
+        "unitMix": [
+          {
+            "type": "4 BHK",
+            "sizeFrom": 7300,
+            "sizeTo": 10300,
+            "priceFrom": 78100000,
+            "priceTo": 110200000,
+            "total": 135,
+            "available": 18
+          },
+          {
+            "type": "5 BHK",
+            "sizeFrom": 10300,
+            "sizeTo": 13300,
+            "priceFrom": 110200000,
+            "priceTo": 142300000,
+            "total": 149,
+            "available": 21
+          },
+          {
+            "type": "Penthouse",
+            "sizeFrom": 13300,
+            "sizeTo": 16300,
+            "priceFrom": 142300000,
+            "priceTo": 174400000,
+            "total": 125,
+            "available": 12
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Golf Course Road",
+            "kind": "road",
+            "km": 1.3,
+            "mins": 4
+          },
+          {
+            "name": "DLF Cyber Hub",
+            "kind": "retail",
+            "km": 1.6,
+            "mins": 4
+          },
+          {
+            "name": "Medanta Medicity",
+            "kind": "health",
+            "km": 2.7,
+            "mins": 6
+          },
+          {
+            "name": "Cyber City",
+            "kind": "work",
+            "km": 4.5,
+            "mins": 12
+          },
+          {
+            "name": "IGI Airport",
+            "kind": "airport",
+            "km": 38,
+            "mins": 112
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Post-tensioned slabs on an RCC frame"
+          },
+          {
+            "label": "Flooring",
+            "value": "Imported marble in living, engineered wood in bedrooms"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Modular units, quartz counter, hob and chimney"
+          },
+          {
+            "label": "Security",
+            "value": "Boom barriers, CCTV and a 24x7 command centre"
+          },
+          {
+            "label": "Parking",
+            "value": "Stacked mechanical parking, two bays per residence"
+          },
+          {
+            "label": "Power and water",
+            "value": "DG backup for common areas, dual-plumbed recycled water"
+          },
+          {
+            "label": "Lifts",
+            "value": "High-speed passenger lifts with auto rescue"
+          }
+        ],
+        "highlights": [
+          "IGBC Gold pre-certified",
+          "Landscaped by an international design studio",
+          "Corner residences with three-side ventilation"
+        ]
       },
       "immersive": {
         "available": true,
@@ -1516,7 +2351,9 @@
           "url": null,
           "bytes": 7353725
         }
-      }
+      },
+      "images": [],
+      "seed": 8123
     },
     {
       "id": "digi-quarter",
@@ -1533,21 +2370,118 @@
       "accent": "#8FE388",
       "price": {
         "from": 24500000,
+        "to": 207800000,
+        "perSqft": 23350,
         "currency": "INR"
       },
       "facts": {
         "possession": "Dec 2026",
+        "possessionKey": "2026-12",
+        "possessionYear": 2026,
         "landArea": "12 acres",
+        "acres": 12,
         "towers": 3,
         "units": 460,
         "floors": "G+32",
+        "floorsMax": 32,
         "openSpace": "62%",
+        "openSpacePct": 62,
         "unitTypes": [
           "Office Suite",
           "Retail"
         ],
         "sizeRange": "1,050 - 8,900 sq.ft.",
-        "rera": "GGM/385/117/2019/62"
+        "sizeFrom": 1050,
+        "sizeTo": 8900,
+        "rera": "GGM/385/117/2019/62",
+        "progress": 36,
+        "unitMix": [
+          {
+            "type": "Office Suite",
+            "sizeFrom": 1050,
+            "sizeTo": 4975,
+            "priceFrom": 24500000,
+            "priceTo": 116200000,
+            "total": 264,
+            "available": 142
+          },
+          {
+            "type": "Retail",
+            "sizeFrom": 4975,
+            "sizeTo": 8900,
+            "priceFrom": 116200000,
+            "priceTo": 207800000,
+            "total": 194,
+            "available": 116
+          }
+        ],
+        "nearby": [
+          {
+            "name": "DLF Cyber Hub",
+            "kind": "retail",
+            "km": 1.2,
+            "mins": 3
+          },
+          {
+            "name": "The Shri Ram School",
+            "kind": "school",
+            "km": 1.2,
+            "mins": 4
+          },
+          {
+            "name": "Cyber City",
+            "kind": "work",
+            "km": 2.6,
+            "mins": 6
+          },
+          {
+            "name": "Sector 55-56 Metro",
+            "kind": "metro",
+            "km": 7.1,
+            "mins": 14
+          },
+          {
+            "name": "IGI Airport",
+            "kind": "airport",
+            "km": 37.9,
+            "mins": 106
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Shear-wall RCC structure, wind-tunnel tested"
+          },
+          {
+            "label": "Flooring",
+            "value": "Large-format vitrified tile throughout"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Granite counter with a designer backsplash"
+          },
+          {
+            "label": "Security",
+            "value": "Boom barriers, CCTV and a 24x7 command centre"
+          },
+          {
+            "label": "Parking",
+            "value": "Stacked mechanical parking, two bays per residence"
+          },
+          {
+            "label": "Power and water",
+            "value": "Full DG backup with a solar-assisted common area"
+          },
+          {
+            "label": "Lifts",
+            "value": "Four lifts per core including a service lift"
+          }
+        ],
+        "highlights": [
+          "Full-height glazing in the living rooms",
+          "IGBC Gold pre-certified",
+          "A deck or balcony with every bedroom"
+        ]
       },
       "immersive": {
         "available": true,
@@ -1658,7 +2592,9 @@
           "url": null,
           "bytes": 8655245
         }
-      }
+      },
+      "images": [],
+      "seed": 9317
     },
     {
       "id": "shantigram-vista",
@@ -1675,22 +2611,128 @@
       "accent": "#FF6B8A",
       "price": {
         "from": 7600000,
+        "to": 26900000,
+        "perSqft": 6900,
         "currency": "INR"
       },
       "facts": {
         "possession": "Jun 2029",
+        "possessionKey": "2029-06",
+        "possessionYear": 2029,
         "landArea": "64 acres",
+        "acres": 64,
         "towers": 8,
         "units": 2200,
         "floors": "G+17",
+        "floorsMax": 17,
         "openSpace": "85%",
+        "openSpacePct": 85,
         "unitTypes": [
           "2 BHK",
           "3 BHK",
           "Villa"
         ],
         "sizeRange": "1,100 - 3,900 sq.ft.",
-        "rera": "PR/GJ/AHMEDABAD/AUDA/RAA08812"
+        "sizeFrom": 1100,
+        "sizeTo": 3900,
+        "rera": "PR/GJ/AHMEDABAD/AUDA/RAA08812",
+        "progress": 13,
+        "unitMix": [
+          {
+            "type": "2 BHK",
+            "sizeFrom": 1100,
+            "sizeTo": 2033,
+            "priceFrom": 7600000,
+            "priceTo": 14000000,
+            "total": 660,
+            "available": 370
+          },
+          {
+            "type": "3 BHK",
+            "sizeFrom": 2033,
+            "sizeTo": 2967,
+            "priceFrom": 14000000,
+            "priceTo": 20500000,
+            "total": 815,
+            "available": 240
+          },
+          {
+            "type": "Villa",
+            "sizeFrom": 2967,
+            "sizeTo": 3900,
+            "priceFrom": 20500000,
+            "priceTo": 26900000,
+            "total": 597,
+            "available": 252
+          }
+        ],
+        "nearby": [
+          {
+            "name": "Zydus Hospital",
+            "kind": "health",
+            "km": 3.3,
+            "mins": 6
+          },
+          {
+            "name": "Palladium Mall",
+            "kind": "retail",
+            "km": 3.5,
+            "mins": 10
+          },
+          {
+            "name": "Udgam School",
+            "kind": "school",
+            "km": 3.9,
+            "mins": 9
+          },
+          {
+            "name": "S.G. Highway",
+            "kind": "road",
+            "km": 7.4,
+            "mins": 16
+          },
+          {
+            "name": "Ahmedabad Airport",
+            "kind": "airport",
+            "km": 41.9,
+            "mins": 113
+          }
+        ],
+        "specs": [
+          {
+            "label": "Structure",
+            "value": "Shear-wall RCC structure, wind-tunnel tested"
+          },
+          {
+            "label": "Flooring",
+            "value": "Large-format vitrified tile throughout"
+          },
+          {
+            "label": "Kitchen",
+            "value": "Modular units, quartz counter, hob and chimney"
+          },
+          {
+            "label": "Security",
+            "value": "Face-recognition lobby entry and perimeter CCTV"
+          },
+          {
+            "label": "Parking",
+            "value": "Two basement levels, one bay per residence"
+          },
+          {
+            "label": "Power and water",
+            "value": "100% DG backup, STP and rainwater harvesting"
+          },
+          {
+            "label": "Lifts",
+            "value": "Destination-control lifts, two service cars per tower"
+          }
+        ],
+        "highlights": [
+          "Double-height lobbies in every tower",
+          "Corner residences with three-side ventilation",
+          "Zero-waste-to-landfill operations"
+        ]
       },
       "immersive": {
         "available": true,
@@ -1875,7 +2917,9 @@
           "url": null,
           "bytes": 4344875
         }
-      }
+      },
+      "images": [],
+      "seed": 10441
     }
   ]
 }

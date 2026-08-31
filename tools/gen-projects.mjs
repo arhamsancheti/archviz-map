@@ -1,47 +1,19 @@
 /**
- * Generates data/projects.json - the "client registry" the web app streams from.
+ * Generates data/projects.json - the seeded demo registry.
  *
- * In production this file is what your CMS / admin panel would emit: a tiny
- * metadata document per client project (a few KB), plus a pointer to the heavy
- * geometry (.glb / 3D Tiles) that only gets fetched when the camera is close.
- *
- * Here we also emit a compact `plan` spec so the prototype can build a
- * believable master plan procedurally instead of shipping real client assets.
+ * In production this file is what your CMS / admin panel would emit, and now
+ * literally does: the admin API in `serve.mjs` writes the same file through the same
+ * `makeProject` in `tools/registry-lib.mjs`. This script is the seeded ten we ship
+ * so the map has something in it out of the box.
  *
  *   node tools/gen-projects.mjs
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { makeProject } from './registry-lib.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-
-/* deterministic PRNG so regenerating never reshuffles a client's master plan */
-function rng(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-}
-const pick = (r, arr) => arr[Math.floor(r() * arr.length)];
-const between = (r, a, b) => a + r() * (b - a);
-const round = (n, p = 2) => Number(n.toFixed(p));
-
-const AMENITY_POOL = [
-  ['Grand Clubhouse', 'clubhouse', 'A 40,000 sq.ft. clubhouse with lounge, banquet and co-working floors.'],
-  ['Olympic Pool', 'pool', 'Temperature-controlled 25m lap pool with a separate toddler pool and deck.'],
-  ['Tennis Court', 'sport', 'Championship-surface court, floodlit for night play.'],
-  ['Cricket Nets', 'sport', 'Two turf practice nets with a bowling machine bay.'],
-  ['Central Green', 'park', 'A three-acre landscaped spine connecting every tower lobby.'],
-  ['Kids Play Zone', 'kids', 'Soft-fall play equipment, splash pad and a shaded parents deck.'],
-  ['Amphitheatre', 'event', 'Tiered seating for 300 with a stage for festivals and screenings.'],
-  ['Jogging Loop', 'run', 'A 1.2 km rubberised loop with distance markers and hydration points.'],
-  ['Yoga Deck', 'wellness', 'An elevated timber deck oriented east for sunrise sessions.'],
-  ['Fitness Centre', 'gym', 'Fully equipped gym with a spinning studio and physio room.'],
-  ['Pet Park', 'pet', 'Fenced off-leash run with agility features and a wash bay.'],
-  ['Retail Boulevard', 'retail', 'Ground-level convenience retail, cafe and pharmacy.'],
-];
 
 const PROJECTS = [
   {
@@ -136,91 +108,7 @@ const PROJECTS = [
   },
 ];
 
-/** Lays out towers on a jittered grid, keeping the middle band free for the podium. */
-function buildPlan(p) {
-  const r = rng(p.seed);
-  const siteW = Math.round(Math.sqrt(p.acres * 4047) * between(r, 1.05, 1.35));
-  const siteD = Math.round((p.acres * 4047) / siteW);
-  const cols = Math.ceil(Math.sqrt(p.towers * 1.4));
-  const rows = Math.ceil(p.towers / cols);
-  const cellW = siteW / (cols + 0.6);
-  const cellD = siteD / (rows + 0.6);
-
-  const towers = [];
-  for (let i = 0; i < p.towers; i++) {
-    const c = i % cols;
-    const rowIdx = Math.floor(i / cols);
-    const floors = Math.round(between(r, p.floors[0], p.floors[1]));
-    const slab = between(r, 3.1, 3.5);
-    const w = round(between(r, 24, 38), 1);
-    const d = round(between(r, 20, 30), 1);
-    towers.push({
-      id: 'T' + (i + 1),
-      // metres, relative to the project's map pin; +x east, +z south
-      x: round((c - (cols - 1) / 2) * cellW + between(r, -8, 8), 1),
-      z: round((rowIdx - (rows - 1) / 2) * cellD + between(r, -8, 8), 1),
-      w, d, floors,
-      height: round(floors * slab + between(r, 4, 9), 1),
-      rot: round(between(r, -0.22, 0.22), 3),
-      style: pick(r, ['glass', 'glass', 'stone', 'mixed']),
-      crown: r() > 0.45,
-    });
-  }
-
-  const shuffled = [...AMENITY_POOL].sort(() => r() - 0.5).slice(0, 6 + Math.floor(r() * 3));
-  const amenities = shuffled.map(([name, kind, blurb], i) => {
-    const a = (i / shuffled.length) * Math.PI * 2 + r() * 0.4;
-    const rad = between(r, 0.22, 0.42);
-    return {
-      name, kind, blurb,
-      x: round(Math.cos(a) * siteW * rad, 1),
-      z: round(Math.sin(a) * siteD * rad, 1),
-    };
-  });
-
-  return {
-    site: { w: siteW, d: siteD, rot: round(between(r, -0.4, 0.4), 3) },
-    podium: {
-      w: round(between(r, 60, 105), 1), d: round(between(r, 45, 80), 1),
-      height: round(between(r, 9, 16), 1),
-    },
-    water: {
-      w: round(between(r, 45, 80), 1), d: round(between(r, 16, 26), 1),
-      x: round(between(r, -30, 30), 1), z: round(between(r, 25, 65), 1),
-    },
-    towers,
-    amenities,
-    // what the real pipeline would ship instead of `plan`
-    asset: { format: 'glb', url: null, bytes: Math.round(between(r, 3.4, 11.8) * 1024 * 1024) },
-  };
-}
-
-const out = PROJECTS.map((p) => ({
-  id: p.id,
-  name: p.name,
-  developer: p.developer,
-  city: p.city,
-  locality: p.locality,
-  location: { lng: p.lng, lat: p.lat },
-  status: p.status,
-  tagline: p.tagline,
-  accent: p.accent,
-  price: { from: p.priceFrom, currency: 'INR' },
-  facts: {
-    possession: p.possession,
-    landArea: p.acres + ' acres',
-    towers: p.towers,
-    units: p.units,
-    floors: 'G+' + p.floors[1],
-    openSpace: p.openSpace,
-    unitTypes: p.unitTypes,
-    sizeRange: p.sizeRange,
-    rera: p.rera,
-  },
-  // deep-link to the full Unreal experience we already sell
-  immersive: { available: true, url: 'unreal://launch/' + p.id, pixelStream: null },
-  plan: buildPlan(p),
-}));
+const out = PROJECTS.map(makeProject);
 
 mkdirSync(join(root, 'data'), { recursive: true });
 writeFileSync(
