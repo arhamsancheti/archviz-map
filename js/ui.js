@@ -340,12 +340,28 @@ export function closeDetail() {
   document.body.classList.remove('detail-open');
 }
 
+/** Photos in a sensible order: the outside first, then what is inside it. */
+const IMAGE_ORDER = ['exterior', 'towers', 'amenities', 'interiors', 'plans'];
+const IMAGE_LABEL = {
+  exterior: 'Exterior', towers: 'Towers', amenities: 'Amenities',
+  interiors: 'Interiors', plans: 'Floor plans',
+};
+
+const gallery = (p) =>
+  (p.images || [])
+    .slice()
+    .sort((a, b) => IMAGE_ORDER.indexOf(a.category) - IMAGE_ORDER.indexOf(b.category));
+
 function paintDetail(p, handlers) {
   const f = p.facts;
+  const shots = gallery(p);
+  const cover = shots[0];
   $('#detail').innerHTML = `
-    <div class="hero">
-      <div class="hero-sky" style="background:linear-gradient(168deg, ${shade(p.accent, 26)}, ${shade(p.accent, -58)})"></div>
-      <div class="hero-city">${skyline(p.plan, 9)}</div>
+    <div class="hero${cover ? ' has-photo' : ''}">
+      ${cover
+        ? `<img class="hero-photo" src="${esc(cover.url)}" alt="${esc(cover.caption || p.name)}" loading="eager" decoding="async" />`
+        : `<div class="hero-sky" style="background:linear-gradient(168deg, ${shade(p.accent, 26)}, ${shade(p.accent, -58)})"></div>
+           <div class="hero-city">${skyline(p.plan, 9)}</div>`}
       <span class="tag ${STATUS_TONE[p.status] || 'ok'} hero-badge">${esc(p.status)}</span>
       <button class="hero-close" id="detail-close" aria-label="Close">${CROSS}</button>
       <div class="hero-meta">
@@ -413,8 +429,16 @@ function paintTabs(p, handlers) {
   const f = p.facts;
 
   if (activeTab === 'overview') {
+    const shots = gallery(p).slice(1);
     body.innerHTML = `
       <p class="blurb">${esc(p.tagline)}</p>
+
+      ${shots.length ? `<div class="shots" id="shots">
+        ${shots.map((im, i) => `<button class="shot" data-i="${i + 1}" style="background-image:url('${esc(im.thumb)}')"
+            aria-label="${esc(im.caption || IMAGE_LABEL[im.category] || 'Photo')}">
+            <span>${esc(IMAGE_LABEL[im.category] || '')}</span>
+          </button>`).join('')}
+      </div>` : ''}
 
       <ul class="highlights">
         ${f.highlights.map((h) => `<li>${CHECK}<span>${esc(h)}</span></li>`).join('')}
@@ -440,6 +464,9 @@ function paintTabs(p, handlers) {
       </div>
 
       <p class="rera">RERA ${esc(f.rera)}</p>`;
+    for (const b of body.querySelectorAll('.shots .shot')) {
+      b.onclick = () => openLightbox(gallery(p), Number(b.dataset.i));
+    }
     return;
   }
 
@@ -510,6 +537,58 @@ const kindLabel = (k) =>
      retail: 'Shopping', airport: 'Airport', work: 'Workplace' }[k] || 'Nearby');
 
 const fact = (label, value) => `<div class="fact"><span>${esc(label)}</span><b>${esc(String(value))}</b></div>`;
+
+/* -------------------------------------------------------------- lightbox */
+
+/**
+ * Full-size viewer for the project photos. Built on demand and thrown away on
+ * close - it is the only part of the panel that loads full-resolution images, and
+ * keeping it out of the DOM keeps them out of memory until someone asks.
+ */
+function openLightbox(shots, startIndex) {
+  let index = startIndex;
+  const box = document.createElement('div');
+  box.className = 'lightbox';
+  box.innerHTML = `
+    <button class="lb-close" aria-label="Close">${CROSS}</button>
+    <button class="lb-nav prev" aria-label="Previous photo"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <figure><img alt="" /><figcaption></figcaption></figure>
+    <button class="lb-nav next" aria-label="Next photo"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>`;
+
+  const img = box.querySelector('img');
+  const caption = box.querySelector('figcaption');
+  const show = () => {
+    const shot = shots[index];
+    img.src = shot.url;
+    img.alt = shot.caption || IMAGE_LABEL[shot.category] || '';
+    caption.textContent =
+      (shot.caption ? shot.caption + ' · ' : '') +
+      (IMAGE_LABEL[shot.category] || '') + `  ${index + 1}/${shots.length}`;
+  };
+  const step = (n) => {
+    index = (index + n + shots.length) % shots.length;
+    show();
+  };
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    box.remove();
+  };
+  const onKey = (e) => {
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowRight') step(1);
+    if (e.key === 'ArrowLeft') step(-1);
+  };
+
+  box.querySelector('.lb-close').onclick = close;
+  box.querySelector('.prev').onclick = () => step(-1);
+  box.querySelector('.next').onclick = () => step(1);
+  box.onclick = (e) => { if (e.target === box) close(); };
+  document.addEventListener('keydown', onKey);
+
+  show();
+  document.body.appendChild(box);
+  box.querySelector('.lb-close').focus();
+}
 
 /* ------------------------------------------------------------------ misc */
 
