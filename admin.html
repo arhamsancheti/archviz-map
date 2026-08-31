@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#eef1f5" />
+<title>VU admin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet" />
+<link href="css/app.css" rel="stylesheet" />
+<link href="css/admin.css" rel="stylesheet" />
+
+<script defer src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" />
+</head>
+<body class="admin">
+
+<header class="admin-top">
+  <a class="brand" href="/">
+    <svg class="logo" viewBox="0 0 24 24" role="img" aria-label="VU">
+      <path class="mark" d="M4.4 4.6v7.1a7.6 7.6 0 0 0 15.2 0V4.6" />
+      <path class="mark" d="M8.9 4.6 12 10.2l3.1-5.6" />
+    </svg>
+    <span class="brand-name">VU</span>
+  </a>
+  <span class="admin-badge">Admin</span>
+  <div class="spacer"></div>
+  <span class="tooling" id="tooling"></span>
+  <a class="btn ghost" href="/" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-8 8"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+    Open the map
+  </a>
+</header>
+
+<div class="admin-shell">
+  <aside class="admin-rail">
+    <button class="btn primary" id="btn-new">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New project
+    </button>
+    <div class="admin-list" id="admin-list"></div>
+  </aside>
+
+  <main class="admin-main" id="admin-main"></main>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>
