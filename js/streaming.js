@@ -232,17 +232,22 @@ export class StreamingManager {
     const sites = this.map.getSource('sites');
     if (!massing || !sites) return;
 
-    // setData is a worker round-trip each, and this runs on every throttled move.
-    // Both sources only change when the visible set or the resident set does, so a
-    // signature check turns panning at a steady zoom into a no-op.
-    const sig =
-      (zoom >= LOD.massingMinZoom ? 's' : 'n') +
-      '|' + visible.map((p) => p?.id).join() +
-      '|' + [...this.scene.entries.keys()].join();
+    // setData is a worker round-trip each, and this runs on every throttled camera
+    // update. Both sources only change when the visible set or the resident set
+    // does, so a signature check turns panning at a steady zoom into a no-op.
+    //
+    // Below the massing zoom both sources are empty, and an empty source does not
+    // care which projects are in view - so the signature drops the ids there. Without
+    // that, zooming out to the globe re-sent two empty FeatureCollections to the
+    // worker every 150 ms, because the visible set churns constantly while the
+    // viewport is sweeping across the country.
+    const show = zoom >= LOD.massingMinZoom;
+    const sig = show
+      ? 's|' + visible.map((p) => p?.id).join() + '|' + [...this.scene.entries.keys()].join()
+      : 'n';
     if (sig === this.massingSig) return;
     this.massingSig = sig;
 
-    const show = zoom >= LOD.massingMinZoom;
     const feats = [];
     const siteFeats = [];
     if (show) {

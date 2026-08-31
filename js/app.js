@@ -146,6 +146,8 @@ function onCameraFrame() {
   requestAnimationFrame((t) => {
     framePending = false;
     syncCompass();
+    // removal only - see syncTerrain. This is what catches a zoom-out mid-gesture.
+    syncTerrain({ allowEnable: false });
     if (t - lastMarkerPass > 60) {
       lastMarkerPass = t;
       markers.update(state.filtered, state.selectedId);
@@ -320,25 +322,44 @@ function applyWorld() {
 }
 
 /**
- * The DEM terrain mesh is expensive on a globe and only partially supported there,
- * so it is zoom-gated: off at planet scale (where it displaces nothing you can see
- * and the hillshade carries the relief), on from `WORLD.terrainMinZoom` up, where
- * the projection has eased flat and the mesh is what makes a site sit in its
- * landscape. Runs on moveend - never mid-animation, which upstream handles badly.
- * Hysteresis stops it flapping while a wheel zoom hovers around the threshold.
+ * The DEM terrain mesh is expensive on a globe and only partially supported there
+ * (MapLibre says so out loud: "terrain is not fully supported on vertical
+ * perspective projection"), so it is zoom-gated - off at planet scale, where it
+ * displaces nothing you can see and the hillshade carries the relief, on from
+ * `WORLD.terrainMinZoom` up, where the projection has eased flat and the mesh is
+ * what makes a site sit in its landscape.
+ *
+ * The two directions are not symmetric, and that is the whole point:
+ *
+ *   Turning the mesh OFF may happen at any moment, including mid-gesture. This used
+ *   to run on `moveend` only - but a wheel or pinch zoom-out is ONE gesture whose
+ *   moveend fires when it finally settles, so zooming out from a project kept the
+ *   mesh alive for the entire globe transition. That is exactly the combination the
+ *   zoom gate exists to avoid, and it is what made the map stick on the way out.
+ *
+ *   Turning it ON waits for moveend. Adding a terrain mesh mid-animation is the
+ *   direction upstream handles badly, and there is no hurry: the ground is flat
+ *   until you arrive.
+ *
+ * The dead band between the two thresholds stops a wheel hovering near the boundary
+ * from flapping the mesh on and off, without ever letting it live below the gate.
  */
-function syncTerrain() {
+function syncTerrain({ allowEnable = true } = {}) {
   if (!state.world3d) {
-    terrainMeshOn = false;
-    try { map.setTerrain(null); } catch { /* style not ready */ }
+    if (terrainMeshOn) setTerrainMesh(false);
     return;
   }
   const z = map.getZoom();
-  const want = terrainMeshOn ? z >= WORLD.terrainMinZoom - 1 : z >= WORLD.terrainMinZoom;
-  if (want === terrainMeshOn) return;
+  if (terrainMeshOn && z < WORLD.terrainMinZoom) setTerrainMesh(false);
+  else if (!terrainMeshOn && allowEnable && z >= WORLD.terrainMinZoom + WORLD.terrainHysteresis) {
+    setTerrainMesh(true);
+  }
+}
+
+function setTerrainMesh(on) {
   try {
-    map.setTerrain(want ? { source: WORLD.dem.id, exaggeration: WORLD.exaggeration } : null);
-    terrainMeshOn = want;
+    map.setTerrain(on ? { source: WORLD.dem.id, exaggeration: WORLD.exaggeration } : null);
+    terrainMeshOn = on;
   } catch (err) {
     console.warn('[world] terrain unavailable:', err.message);
     terrainMeshOn = false;

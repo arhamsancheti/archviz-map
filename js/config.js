@@ -79,6 +79,12 @@ export const WORLD = {
    * curved earth.
    */
   terrainMinZoom: 12,
+  /**
+   * How far above `terrainMinZoom` the camera has to climb before the mesh comes
+   * back. A dead band, not a symmetric hysteresis: the mesh is never allowed to live
+   * below the gate, because below the gate is where the globe is.
+   */
+  terrainHysteresis: 0.4,
   hillshade: 0.3,
   buildingsMinZoom: 14.4,   // tiles start loading here...
   buildingFadeZoom: 15.4,   // ...and they are fully grown by here
