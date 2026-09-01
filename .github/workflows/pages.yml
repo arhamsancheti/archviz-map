@@ -1,0 +1,49 @@
+# Publishes the map to GitHub Pages on every push to main.
+#
+# There is nothing to build. The map is static files plus two CDN scripts, and the
+# registry it reads - data/projects.json, models/, media/ - is committed. So this
+# uploads the repository as-is.
+#
+# What does NOT come with it is the admin API in serve.mjs, because Pages runs no
+# server. /admin.html still loads and renders everything read-only; authoring happens
+# locally against `node serve.mjs`, and the files it writes are what you commit.
+# See the Deploying section of the README.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it; queue the next one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the registry is valid JSON before publishing it
+        run: node -e "const r=require('./data/projects.json');
+          if(!Array.isArray(r.projects)||!r.projects.length) throw new Error('registry is empty');
+          console.log('registry ok -', r.projects.length, 'projects');"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

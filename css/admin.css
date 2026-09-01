@@ -132,6 +132,19 @@ body.admin {
 .form-foot .msg.ok { color: var(--ok); }
 .form-foot .msg.bad { color: #c0392b; }
 
+/* A disabled control has to look disabled. On the published copy every write is
+   off, and a live-looking button that does nothing is worse than an obvious one. */
+.admin :disabled { cursor: not-allowed; }
+.admin .field input:disabled,
+.admin .field select:disabled,
+.admin .field textarea:disabled {
+  background: var(--inset); color: var(--muted); border-color: var(--border);
+}
+.admin .btn:disabled, .admin .icon-btn:disabled, .admin .chip:disabled {
+  opacity: .45; box-shadow: none;
+}
+.admin .btn.primary:disabled { background: var(--faint); }
+
 /* --------------------------------------------------------------- dropzone */
 
 .drop {

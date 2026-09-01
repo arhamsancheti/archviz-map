@@ -19,6 +19,8 @@ The map itself needs nothing installed - MapLibre and three.js come from a CDN a
 `serve.mjs` serves the files. Run `npm install` once if you want to upload models and
 photos through the admin, which is where the heavy lifting lives.
 
+The admin needs that server. It does not survive a static host - see **Deploying**.
+
 Deep links work: `http://localhost:5173/?p=lakeside-habitat`.
 
 ## What you can do in it
@@ -253,6 +255,72 @@ layer would need to share depth with that instead of MapLibre.
 - If the basemap's building tiles carry no height tag, the fallback is 3 storeys, so
   those blocks look uniform.
 - Terrain exaggeration is 1.0 (real). Raise `WORLD.exaggeration` for drama on hill sites.
+
+## Deploying
+
+The map and the admin have different needs, and that is the whole of it.
+
+**The map is static.** HTML, CSS, three ES modules, MapLibre and three.js from a CDN,
+and a registry it reads with `fetch`. It needs no server at all, so GitHub Pages,
+Netlify, S3, or any bucket serves it as-is.
+
+**The admin is not.** It needs something that can run code and keep files: it writes
+`data/projects.json`, it runs the glTF optimiser over an uploaded export, and it saves
+photos into `media/`. A static host has neither a runtime nor a writable disk. Note
+that a *database* is not what is missing - the registry is a JSON file on purpose -
+what is missing is a process and somewhere to write.
+
+### The recommended shape: author locally, publish statically
+
+The registry is a file, so the admin is a content tool whose output you commit. That
+makes the published site a build artifact and costs nothing to host:
+
+```bash
+node serve.mjs                 # author at localhost:5173/admin
+git add data/projects.json models media
+git commit -m "content: add Lakeside Habitat, place its model"
+git push                       # Pages redeploys
+```
+
+`.github/workflows/pages.yml` publishes the repository on every push to `main`, after
+checking the registry is valid JSON so a bad edit fails the build instead of the site.
+Turn it on once under **Settings -> Pages -> Source -> GitHub Actions**.
+
+Two things to know about the published copy:
+
+- `/admin` does not resolve on Pages - there is no rewrite rule, so the page is at
+  **`/admin.html`**.
+- It loads and renders everything, read-only, from `data/projects.json`, and says so.
+  Every control that would write is disabled. Before this, the 404 page came back as
+  HTML, `JSON.parse` threw, and the admin was simply blank.
+
+Keep an eye on repository size if you go this way: `.glb` files are committed, so a
+few large townships will want Git LFS or a CDN for `models/` rather than the repo.
+
+### If the admin has to be online
+
+`serve.mjs` already is the server, so the least work is a host that runs a Node
+process with a persistent disk - Render, Railway, Fly. It reads `PORT` from the
+environment already; set `HOST=0.0.0.0` so it binds beyond localhost, and mount a
+volume over `data/`, `models/` and `media/` so a redeploy does not wipe the content.
+
+**Do not do that without putting a login in front of it first.** There is no auth
+today, by design: it binds to localhost, where the person who can reach it is the
+person at the machine. On a public URL that same code lets anyone rewrite your
+registry and upload arbitrary files.
+
+If you would rather stay serverless, the pieces map onto Cloudflare (Pages + Workers +
+R2 for the files + D1 or KV for the registry) or Vercel/Netlify (functions + their
+blob store). That is a real port, not a config change: the optimiser is a long CPU job
+that will outlive a short function timeout, so it wants a queue or a container.
+
+### Optimising models without running anything locally
+
+If the goal is only that *the model pipeline* works on GitHub, it can: commit a raw
+export and let a workflow run `tools/optimize.mjs` on it, then commit the three builds
+back. `buildLods` is already a library with no server in it. That gets you the
+expensive half of the admin on free CI, and leaves placement as the only thing needing
+the local server.
 
 ## Files
 

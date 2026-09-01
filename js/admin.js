@@ -20,20 +20,46 @@ const state = {
   meta: null,
   selectedId: null,
   tab: 'details',
+  /**
+   * True when there is no admin API behind this page - which is what a static host
+   * like GitHub Pages is. Everything still renders from data/projects.json; only
+   * the writes are off.
+   */
+  readOnly: false,
+};
+
+/** What the form needs when there is no server to ask. */
+const STATIC_META = {
+  imageCategories: ['exterior', 'amenities', 'interiors', 'towers', 'plans'],
+  statuses: ['Ready to Move', 'Under Construction', 'New Launch'],
+  cities: [],
+  developers: [],
+  tooling: { gltfTransform: false, sharp: false },
 };
 
 boot();
 
 async function boot() {
+  // The API answers first if it is there. On a static host it is not, and the 404
+  // page is HTML - so this used to throw inside JSON.parse and leave the whole admin
+  // blank. Fall back to the registry file the map itself reads, and turn writes off.
+  try {
+    state.meta = await api('GET', '/api/meta');
+  } catch {
+    state.readOnly = true;
+    state.meta = STATIC_META;
+  }
   await refresh();
-  state.meta = await api('GET', '/api/meta');
   paintTooling();
   $('#btn-new').onclick = newProject;
+  $('#btn-new').disabled = state.readOnly;
   render();
 }
 
 async function refresh() {
-  const registry = await api('GET', '/api/registry');
+  const registry = state.readOnly
+    ? await fetch('data/projects.json').then((r) => r.json())
+    : await api('GET', '/api/registry');
   state.projects = registry.projects;
 }
 
@@ -48,7 +74,13 @@ async function api(method, path, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    // an HTML error page, which means there is no API on the other end
+    throw new Error('no admin API at ' + path + ' (' + res.status + ')');
+  }
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data;
 }
@@ -91,6 +123,10 @@ function uploadPut(path, file, onProgress) {
 function paintTooling() {
   const t = state.meta.tooling;
   const host = $('#tooling');
+  if (state.readOnly) {
+    host.innerHTML = `<span class="warn-pill">Read only &mdash; no server behind this page</span>`;
+    return;
+  }
   if (!t.gltfTransform) {
     host.innerHTML = `<span class="warn-pill">Run npm install to upload models</span>`;
   } else if (!t.sharp) {
@@ -103,6 +139,28 @@ function paintTooling() {
 function render() {
   paintList();
   paintMain();
+  applyReadOnly();
+}
+
+/**
+ * With no API there is nothing to write to, so every control that would write is
+ * disabled rather than left to fail on click. Everything else - the list, the form
+ * values, the model report, the placement preview, the photos - still renders, so
+ * the published site shows what the admin is rather than a blank page.
+ */
+function applyReadOnly() {
+  if (!state.readOnly) return;
+  const main = $('#admin-main');
+  for (const el of $$('input, select, textarea', main)) el.disabled = true;
+  for (const el of $$('button', main)) {
+    if (el.closest('.admin-tabs')) continue; // switching tabs writes nothing
+    el.disabled = true;
+    el.title = 'Editing needs the admin server - run `node serve.mjs` locally';
+  }
+  for (const el of $$('.drop', main)) {
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0.5';
+  }
 }
 
 function paintList() {
@@ -137,6 +195,7 @@ function paintMain() {
 
   if (!p) {
     host.innerHTML = `
+      ${readOnlyBanner()}
       <div class="admin-empty">
         <h2>Nothing selected</h2>
         <p>Pick a project on the left to edit it, upload its model and drag it onto its
@@ -147,6 +206,7 @@ function paintMain() {
   }
 
   host.innerHTML = `
+    ${readOnlyBanner()}
     <div class="editor-head">
       <div>
         <h1>${esc(p.name)}</h1>
@@ -172,12 +232,30 @@ function paintMain() {
     b.onclick = () => {
       state.tab = b.dataset.tab;
       paintMain();
+      applyReadOnly();
     };
   }
 
   if (state.tab === 'details') paintDetails(p);
   else if (state.tab === 'model') paintModel(p);
   else paintPhotos(p);
+}
+
+/**
+ * Says plainly why nothing saves, and what to do about it. A disabled button with no
+ * explanation is worse than a broken one.
+ */
+function readOnlyBanner() {
+  if (!state.readOnly) return '';
+  return `<div class="notice" style="margin-bottom:18px">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+    <span><b>This is the published copy, so nothing here saves.</b><br>
+      The admin needs a server to write <code>data/projects.json</code> and to optimise
+      uploads &mdash; a static host has neither. Clone the repository and run
+      <code>node serve.mjs</code>, author there, then commit
+      <code>data/projects.json</code>, <code>models/</code> and <code>media/</code> and
+      push: this page is built from those files.</span>
+  </div>`;
 }
 
 /* ------------------------------------------------------------------ details */
@@ -529,7 +607,7 @@ function setupPlacement(project) {
   // the handle is the model's origin - the point the lng/lat refers to
   const el = document.createElement('div');
   el.className = 'place-marker';
-  const marker = new maplibregl.Marker({ element: el, draggable: true })
+  const marker = new maplibregl.Marker({ element: el, draggable: !state.readOnly })
     .setLngLat([location.lng, location.lat])
     .addTo(map);
   marker.on('drag', () => {
@@ -689,6 +767,7 @@ function paintPlaceControls() {
     markDirty();
   };
   $('#place-save').onclick = savePlacement;
+  applyReadOnly();
 }
 
 /**
