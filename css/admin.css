@@ -277,3 +277,44 @@ body.admin {
   .admin-shell { grid-template-columns: 1fr; }
   .admin-rail { border-right: 0; border-bottom: 1px solid var(--border); max-height: 40vh; }
 }
+
+/* -- video tab ---------------------------------------------------------- */
+
+.yt-admin-preview {
+  margin-top: 16px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  max-height: 360px;
+  background: #000;
+  border: 1px solid var(--border);
+}
+.yt-admin-preview iframe {
+  width: 100%; height: 100%; border: 0; display: block;
+}
+
+/* multi-video rows */
+.yt-rows { display: flex; flex-direction: column; gap: 10px; }
+
+.yt-row {
+  display: grid;
+  grid-template-columns: 96px 1fr 40px;
+  gap: 10px;
+  align-items: center;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px;
+}
+.yt-row-thumb {
+  width: 96px; height: 54px;
+  border-radius: var(--r-sm);
+  background: var(--inset) center / cover no-repeat;
+  flex: none;
+}
+.yt-row-body { min-width: 0; }
+.yt-row-remove {
+  width: 36px; height: 36px; padding: 8px; flex: none;
+  color: var(--muted);
+}
+.yt-row-remove:hover { color: #e53; border-color: #e53; }

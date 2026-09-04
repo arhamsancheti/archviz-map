@@ -406,7 +406,23 @@ function paintDetail(p, handlers) {
       <button class="btn ghost" id="btn-share" title="Copy link" aria-label="Copy link">
         <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>
       </button>
-    </div>`;
+    </div>
+    ${(() => {
+      const ids = Array.isArray(p.youtubeIds) && p.youtubeIds.length
+        ? p.youtubeIds
+        : (p.youtubeId ? [p.youtubeId] : []);
+      return ids.map((vid, i) => `
+    <div class="yt-embed">
+      <iframe
+        src="https://www.youtube.com/embed/${vid}?rel=0"
+        title="Project video ${i + 1}"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen
+      ></iframe>
+    </div>`).join('');
+    })()}`;
 
   $('#detail-close').onclick = handlers.onClose;
   $('#btn-immersive').onclick = () => handlers.onImmersive(p);
@@ -619,7 +635,46 @@ function shade(hex, pct) {
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
+
 function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16}, ${(n >> 8) & 0xff}, ${n & 0xff}, ${a})`;
+}
+
+/* -------------------------------------------------------------- youtube modal */
+
+/**
+ * Opens a full-screen overlay with the YouTube video embedded and auto-playing.
+ * Closes on Escape, backdrop click, or the × button — and stops the video too.
+ */
+function openYouTube(youtubeId, title) {
+  const overlay = document.createElement('div');
+  overlay.className = 'yt-overlay';
+  overlay.innerHTML = `
+    <div class="yt-modal">
+      <button class="yt-close lb-close" aria-label="Close video">${CROSS}</button>
+      <div class="yt-frame-wrap">
+        <iframe
+          src="https://www.youtube.com/embed/${esc(youtubeId)}?autoplay=1&rel=0"
+          title="${esc(title || 'Video')}"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>`;
+
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+
+  overlay.querySelector('.yt-close').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  document.addEventListener('keydown', onKey);
+
+  document.body.appendChild(overlay);
+  overlay.querySelector('.yt-close').focus();
 }

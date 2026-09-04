@@ -223,6 +223,7 @@ function paintMain() {
       <button data-tab="details" role="tab">Details</button>
       <button data-tab="model" role="tab">Model &amp; placement</button>
       <button data-tab="photos" role="tab">Photos${p.images && p.images.length ? ' (' + p.images.length + ')' : ''}</button>
+      <button data-tab="video" role="tab">Video${(p.youtubeIds && p.youtubeIds.length) ? ' (' + p.youtubeIds.length + ')' : (p.youtubeId ? ' ✓' : '')}</button>
     </nav>
     <div id="editor-body"></div>`;
 
@@ -238,6 +239,7 @@ function paintMain() {
 
   if (state.tab === 'details') paintDetails(p);
   else if (state.tab === 'model') paintModel(p);
+  else if (state.tab === 'video') paintVideo(p);
   else paintPhotos(p);
 }
 
@@ -404,7 +406,109 @@ function readForm(host = document) {
   return out;
 }
 
+/* -------------------------------------------------------------------- video */
+
+/** Parse any YouTube URL or bare ID into just the 11-char video ID. */
+function parseYouTubeId(raw) {
+  const s = raw.trim();
+  if (!s) return '';
+  try {
+    const u = new URL(s);
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0].trim();
+    return (u.searchParams.get('v') || u.pathname.split('/').pop()).trim();
+  } catch {
+    return s; // bare ID
+  }
+}
+
+function paintVideo(p) {
+  const ids = Array.isArray(p.youtubeIds) ? [...p.youtubeIds] : (p.youtubeId ? [p.youtubeId] : []);
+  const host = $('#editor-body');
+
+  function renderRows() {
+    host.innerHTML = `
+      <div class="pane">
+        <h3>YouTube videos</h3>
+        <p class="hint">Add one or more YouTube URLs or video IDs. Each video will be
+          embedded in the project card on the map. Drag the rows to reorder (coming soon).
+          Remove a row to delete that video.</p>
+
+        <div class="yt-rows" id="yt-rows">
+          ${ids.map((id, i) => `
+          <div class="yt-row" data-i="${i}">
+            <div class="yt-row-thumb" style="background-image:url('https://img.youtube.com/vi/${esc(id)}/mqdefault.jpg')"></div>
+            <div class="yt-row-body">
+              <label class="field" style="margin:0">
+                <span>Video ${i + 1}</span>
+                <input class="yt-url-input" data-i="${i}" type="url"
+                  placeholder="https://youtu.be/..."
+                  value="${esc('https://youtu.be/' + id)}" />
+              </label>
+            </div>
+            <button class="btn ghost yt-row-remove" data-i="${i}" title="Remove" aria-label="Remove video ${i + 1}">
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>`).join('')}
+        </div>
+
+        <button class="btn ghost wide" id="yt-add" style="margin-top:10px">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Add video link
+        </button>
+
+        <div class="form-foot" style="margin-top:16px">
+          <button class="btn primary" id="save-video" style="flex:none">Save all</button>
+          <span class="msg" id="video-msg"></span>
+        </div>
+      </div>`;
+
+    // Remove buttons
+    for (const btn of $$('.yt-row-remove')) {
+      btn.onclick = () => {
+        ids.splice(Number(btn.dataset.i), 1);
+        renderRows();
+      };
+    }
+
+    // Add row
+    $('#yt-add').onclick = () => {
+      ids.push('');
+      renderRows();
+      // focus the new input
+      const inputs = $$('.yt-url-input');
+      inputs[inputs.length - 1]?.focus();
+    };
+
+    // Save
+    $('#save-video').onclick = async () => {
+      const msg = $('#video-msg');
+      msg.className = 'msg';
+      msg.textContent = 'Saving...';
+      try {
+        // Read current input values & parse IDs
+        const parsed = $$('.yt-url-input')
+          .map((inp) => parseYouTubeId(inp.value))
+          .filter(Boolean);
+        await api('PATCH', '/api/projects/' + p.id, { youtubeIds: parsed, youtubeId: null });
+        await refresh();
+        msg.className = 'msg ok';
+        msg.textContent = parsed.length
+          ? `Saved — ${parsed.length} video${parsed.length > 1 ? 's' : ''} live on the map`
+          : 'All videos removed';
+        state.tab = 'video';
+        render();
+      } catch (err) {
+        msg.className = 'msg bad';
+        msg.textContent = err.message;
+      }
+    };
+  }
+
+  renderRows();
+}
+
 /* -------------------------------------------------------------------- model */
+
 
 function paintModel(p) {
   const asset = p.plan.asset || {};

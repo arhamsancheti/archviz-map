@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-08-31T17:23:24.352Z",
+  "generated": "2026-09-04T09:12:29.175Z",
   "projects": [
     {
       "id": "lakeside-habitat",
@@ -398,7 +398,8 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 1011
+      "seed": 1011,
+      "youtubeIds": []
     },
     {
       "id": "cornerstone-utopia",
@@ -772,7 +773,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 2027
+      "seed": 2027,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "dream-acres",
@@ -1158,7 +1162,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 3141
+      "seed": 3141,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "amara-heights",
@@ -1510,7 +1517,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 4222
+      "seed": 4222,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "sunrise-bay",
@@ -1846,7 +1856,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 5309
+      "seed": 5309,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "riverine-park",
@@ -2191,7 +2204,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 6180
+      "seed": 6180,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "bhooja-one",
@@ -2505,7 +2521,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 7011
+      "seed": 7011,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "camellia-court",
@@ -2841,7 +2860,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 8123
+      "seed": 8123,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "digi-quarter",
@@ -3143,7 +3165,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 9317
+      "seed": 9317,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     },
     {
       "id": "shantigram-vista",
@@ -3529,7 +3554,10 @@
           "caption": "Master plan"
         }
       ],
-      "seed": 10441
+      "seed": 10441,
+      "youtubeIds": [
+        "9ZDITPgign8"
+      ]
     }
   ]
 }
